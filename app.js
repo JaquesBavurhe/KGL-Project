@@ -14,11 +14,13 @@ require('dotenv').config();
 
 //2. INITIALIZING EXPRESS APP
 const app = express();
-const port = 3000;
+const PORT = process.env.PORT || 3000;
 
 //3. CONFIGURATIONS
+const URI = process.env.MONGODB_URI;
+
 app.locals.moment = moment;
-mongoose.connect(process.env.DATABASE);
+mongoose.connect(URI);
 mongoose.connection
   .once('open', () => {
     console.log('Mongoose connection open!!');
@@ -48,9 +50,9 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 //passport configs
-passport.use(User.createStrategy());
-passport.serializeUser(User.serializeUser());
-passport.deserializeUser(User.deserializeUser());
+// passport.use(User.createStrategy());
+// passport.serializeUser(User.serializeUser());
+// passport.deserializeUser(User.deserializeUser());
 
 //for non-existing routes
 app.use((req, res) => {
@@ -58,4 +60,4 @@ app.use((req, res) => {
 });
 
 //6. Starting the server
-app.listen(port, () => console.log(`listening on port ${port}`));
+app.listen(PORT, () => console.log(`listening on port ${PORT}`));
