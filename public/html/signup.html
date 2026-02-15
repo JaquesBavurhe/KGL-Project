@@ -126,7 +126,7 @@
                     </div>
                     <div class="nav-links">
                         <span class="muted-text hide-mobile">Already have an account?</span>
-                        <a href="login.html" class="signup-link">
+                        <a href="/login" class="signup-link">
                             Login <i class="fa-solid fa-arrow-right"></i>
 
                         </a>
@@ -139,7 +139,7 @@
                         <p>Welcome! Please enter your details.</p>
                     </div>
 
-                    <form id="signupForm" class="login-form" novalidate>
+                    <form id="signupForm" class="login-form" action="/signup" method="post" novalidate>
 
                         <!-- STEP 1 -->
                         <div class="form-step active">
@@ -147,7 +147,7 @@
                                 <label>Full Name</label>
                                 <div class="input-wrapper">
                                     <i class="fa-solid fa-user input-icon"></i>
-                                    <input type="text" id="fullName" required>
+                                    <input type="text" id="fullName" name="fullName" required>
                                 </div>
                                 <small class="error-message" id="fullNameError"></small>
                             </div>
@@ -156,7 +156,7 @@
                                 <label>Email / Username</label>
                                 <div class="input-wrapper">
                                     <i class="fa-solid fa-at input-icon"></i>
-                                    <input type="text" id="username" required>
+                                    <input type="text" id="username" name="username" required>
                                 </div>
                                 <small class="error-message" id="usernameError"></small>
                             </div>
@@ -172,7 +172,7 @@
                                 <label>Phone Number</label>
                                 <div class="input-wrapper">
                                     <i class="fa-solid fa-phone input-icon"></i>
-                                    <input type="tel" id="phone" required>
+                                    <input type="tel" id="phone" name="phone" required>
                                 </div>
                                 <small class="error-message" id="phoneError"></small>
                             </div>
@@ -181,7 +181,7 @@
                                 <label>Branch</label>
                                 <div class="input-wrapper">
                                     <i class="fa-solid fa-building input-icon"></i>
-                                    <select id="branch" class="select-input" required>
+                                    <select id="branch" class="select-input" name="branch" required>
                                         <option value="">Select Branch</option>
                                         <option>Maganjo</option>
                                         <option>Matugga</option>
@@ -206,7 +206,7 @@
                                 <label>Role</label>
                                 <div class="input-wrapper">
                                     <i class="fa-solid fa-user-gear input-icon"></i>
-                                    <select id="role" class="select-input" required>
+                                    <select id="role" class="select-input" name="role" required>
                                         <option value="">Select Role</option>
                                         <option>Director</option>
                                         <option>Manager</option>
@@ -222,7 +222,7 @@
                                 <label>Password</label>
                                 <div class="input-wrapper">
                                     <i class="fa-solid fa-lock input-icon"></i>
-                                    <input type="password" id="password" required>
+                                    <input type="password" id="password" name="password" required>
                                     <i class="fa-solid fa-eye toggle-password" id="togglePassword"></i>
                                 </div>
                                 <small class="error-message" id="passwordError"></small>
@@ -247,7 +247,7 @@
                         © 2026 Karibu Groceries LTD.
                     </div>
                     <div class="footer-links">
-                        <a href="./index.html">Home</a>
+                        <a href="/">Home</a>
                         <a href="#">Privacy</a>
                         <a href=""></a>
                     </div>
@@ -256,7 +256,7 @@
         </div>
     </div>
 
-    <script src="./public/js/formHandler.js"></script>
+    <script src="../js/formHandler.js"></script>
     <script>
         let currentStep = 0;
         const steps = document.querySelectorAll(".form-step");
