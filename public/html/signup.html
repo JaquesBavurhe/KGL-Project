@@ -95,7 +95,7 @@
             <aside class="sidebar">
                 <div class="sidebar-content">
                     <div class="logo">
-                        <img src="../assets/logo/logo-vertical.png" width="auto" height="90px" alt="">
+                        <a href="/"><img src="../assets/logo/logo-vertical.png" width="auto" height="90px" alt=""></a>
                     </div>
 
                     <h1 class="main-title">
@@ -178,16 +178,19 @@
                             </div>
 
                             <div class="input-group">
-                                <label>Branch</label>
+                                <label>Role</label>
                                 <div class="input-wrapper">
-                                    <i class="fa-solid fa-building input-icon"></i>
-                                    <select id="branch" class="select-input" name="branch" required>
-                                        <option value="">Select Branch</option>
-                                        <option>Maganjo</option>
-                                        <option>Matugga</option>
+                                    <i class="fa-solid fa-user-gear input-icon"></i>
+                                    <select id="role" class="select-input" name="role" required>
+                                        <option value="">Select Role</option>
+                                        <option>Director</option>
+                                        <option>Manager</option>
+                                        <option>Sales Agent</option>
                                     </select>
+                                    
                                 </div>
-                                <small class="error-message" id="branchError"></small>
+                                <small class="error-message" id="roleError"></small>
+                                
                             </div>
 
                             <div class="form-actions">
@@ -203,18 +206,16 @@
                         <!-- STEP 3 -->
                         <div class="form-step">
                             <div class="input-group">
-                                <label>Role</label>
+                                <label>Branch</label>
                                 <div class="input-wrapper">
-                                    <i class="fa-solid fa-user-gear input-icon"></i>
-                                    <select id="role" class="select-input" name="role" required>
-                                        <option value="">Select Role</option>
-                                        <option>Director</option>
-                                        <option>Manager</option>
-                                        <option>Sales Agent</option>
-                                        <option>Attendant</option>
+                                    <i class="fa-solid fa-building input-icon"></i>
+                                    <select id="branch" class="select-input" name="branch" required>
+                                        <option value="">Select Branch</option>
+                                        <option>Maganjo</option>
+                                        <option>Matugga</option>
                                     </select>
                                 </div>
-                                <small class="error-message" id="roleError"></small>
+                                <small class="error-message" id="branchError"></small>
                             </div>
 
 
@@ -242,7 +243,7 @@
 
                 </div>
 
-                <footer class="bottom-footer">
+                <!-- <footer class="bottom-footer">
                     <div class="copyright">
                         © 2026 Karibu Groceries LTD.
                     </div>
@@ -251,7 +252,7 @@
                         <a href="#">Privacy</a>
                         <a href=""></a>
                     </div>
-                </footer>
+                </footer> -->
             </main>
         </div>
     </div>

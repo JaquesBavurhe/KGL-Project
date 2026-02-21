@@ -18,7 +18,7 @@ router.get(
       return res.redirect("/dashboard/director");
     }
 
-    if (["Sales Agent", "Manager"].includes(req.user.role)) {
+    if (["Manager", "Sales Agent"].includes(req.user.role)) {
       return res.redirect("/dashboard/sales-agent");
     }
 
@@ -38,7 +38,7 @@ router.get(
 router.get(
   "/dashboard/sales-agent",
   authenticateToken({ redirectOnFail: true }),
-  requireRole(["Sales Agent", "Manager"]),
+  requireRole(["Manager", "Sales Agent"]),
   (req, res) => {
     res.sendFile(
       path.join(__dirname, "../public/html/salesAgentDashboard.html"),

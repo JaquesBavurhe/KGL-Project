@@ -12,6 +12,7 @@ const { router: indexRoutes } = require("./routes/indexRoutes");
 const {router: authRoutes} = require('./routes/authRoutes');
 const {router: dashRoutes} = require('./routes/dashRoutes');
 const {router: salesRoutes} = require('./routes/salesRoutes');
+const {router: ProcurementRoutes} = require('./routes/ProcurementRoutes');
 
 //2. INITIALIZING EXPRESS APP
 const app = express();
@@ -52,6 +53,7 @@ app.use("/", indexRoutes);
 app.use('/', authRoutes);
 app.use('/', dashRoutes);
 app.use('/', salesRoutes);
+app.use('/', ProcurementRoutes);
 
 //for non-existing routes
 app.use((req, res) => {

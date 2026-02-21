@@ -21,16 +21,16 @@ const buildToken = (user) =>
 
 const authCookieOptions = {
   httpOnly: true,
-  sameSite: "lax", 
-  secure: process.env.NODE_ENV === "production", 
-  maxAge: 24 * 60 * 60 * 1000, //
+  sameSite: "lax",
+  secure: process.env.NODE_ENV === "production",
+  maxAge: 24 * 60 * 60 * 1000,
 };
 
 router.get("/login", (req, res) => {
   res.sendFile(path.join(__dirname, "../public/html/login.html"));
 });
 
-router.post("/login", async(req, res) => {
+router.post("/login", async (req, res) => {
   try {
     const body = req.body;
     const user = await User.findOne({ username: body.username });
@@ -59,7 +59,7 @@ router.post("/login", async(req, res) => {
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
-})
+});
 
 router.get("/signup", (req, res) => {
   res.sendFile(path.join(__dirname, "../public/html/signup.html"));
@@ -68,8 +68,12 @@ router.get("/signup", (req, res) => {
 router.post("/signup", async (req, res) => {
   try {
     const body = req.body;
-    const hashedPassword = await bcrypt.hash(body.password, 10);
-    const newUser = new User({ ...body, password: hashedPassword });
+    const payload = {
+      ...body,
+      branch: body.role === "Director" ? null : body.branch,
+    };
+
+    const newUser = new User(payload);
     await newUser.save();
 
     res.status(201).json({ message: "User created successfully" });
@@ -77,8 +81,6 @@ router.post("/signup", async (req, res) => {
     res.status(400).json({ message: error.message });
   }
 });
-
-
 
 router.get("/auth/me", authenticateToken(), async (req, res) => {
   try {
@@ -92,15 +94,10 @@ router.get("/auth/me", authenticateToken(), async (req, res) => {
   }
 });
 
-
-
-//logout 
-
+//logout
 router.get("/logout", (req, res) => {
   res.clearCookie("token", authCookieOptions);
   res.redirect("/login");
 });
-
-
 
 module.exports = { router };

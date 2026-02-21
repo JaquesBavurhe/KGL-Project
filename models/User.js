@@ -1,7 +1,6 @@
 // backend/models/User.js
-const mongoose = require('mongoose');
-const bcrypt = require('bcrypt');
-
+const mongoose = require("mongoose");
+const bcrypt = require("bcrypt");
 
 const userSchema = new mongoose.Schema({
   fullName: {
@@ -20,23 +19,22 @@ const userSchema = new mongoose.Schema({
   phone: {
     type: String,
     required: true,
-    match: /^(\+256|0)[0-9]{9}$/, // Uganda phone format
+    match: /^(\+256|0)[0-9]{9}$/,
   },
   branch: {
     type: String,
-    enum: ['Maganjo', 'Matugga'],
-    default: null, // Director doesn’t need a branch
+    enum: ["Maganjo", "Matugga"],
+    default: null,
   },
   role: {
     type: String,
-    enum: ['Director', 'Manager', 'Sales Agent'],
+    enum: ["Director", "Manager", "Sales Agent"],
     required: true,
   },
   password: {
     type: String,
     required: true,
     minlength: 6,
-    // Note: hash before saving (using bcrypt)
   },
   createdAt: {
     type: Date,
@@ -44,13 +42,24 @@ const userSchema = new mongoose.Schema({
   },
 });
 
-
-userSchema.pre('save', async(next)=> {
-  if (this.isModified('password')) {
-    this.password = await bcrypt.hash(this.password, 10);
+userSchema.pre("validate", function (next) {
+  if (this.role === "Director") {
+    this.branch = null;
   }
   next();
 });
 
+userSchema.pre("save", async function (next) {
+  try {
+    if (!this.isModified("password")) {
+      return next();
+    }
 
-module.exports = mongoose.model('User', userSchema);
+    this.password = await bcrypt.hash(this.password, 10);
+    return next();
+  } catch (error) {
+    return next(error);
+  }
+});
+
+module.exports = mongoose.model("User", userSchema);
