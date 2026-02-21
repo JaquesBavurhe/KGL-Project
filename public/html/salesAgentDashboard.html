@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="UTF-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>Karibu Groceries - Sales Agent Dashboard</title>
+  
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1" rel="stylesheet">
+  
+  <link rel="stylesheet" href="../css/dashboardShared.css">
+  </head>
+
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="sidebar-logo-container">
+        <div>
+          <img src="../assets/logo/logo-icon.png" width="auto" height="40" alt="kgl-logo">
+        </div>
+        <span class="logo-text">KaribuGroceries</span>
+      </div>
+
+      <nav class="nav-list custom-scrollbar">
+        <button class="nav-item active" data-target="overview">
+          <span class="material-symbols-outlined">grid_view</span>
+          <span class="nav-label">Dashboard Overview</span>
+        </button>
+        <button class="nav-item" data-target="cash-sales">
+          <span class="material-symbols-outlined">payments</span>
+          <span class="nav-label">Record Cash Sale</span>
+        </button>
+        <button class="nav-item" data-target="credit-sales">
+          <span class="material-symbols-outlined">credit_card</span>
+          <span class="nav-label">Record Credit Sale</span>
+        </button>
+        <button class="nav-item" data-target="records">
+          <span class="material-symbols-outlined">receipt_long</span>
+          <span class="nav-label">Sales Records</span>
+        </button>
+      </nav>
+
+      <div style="padding: 12px; border-top: 1px solid rgba(255,255,255,0.05); margin-top: auto;">
+        <button class="nav-item" style="color: #f43f5e;" id="logoutButton">
+          <span class="material-symbols-outlined">logout</span>
+          <span class="nav-label">Logout</span>
+        </button>
+      </div>
+    </aside>
+
+    <div class="main-content-area">
+      <header class="header">
+        <div class="search-bar">
+          <span class="material-symbols-outlined search-icon">search</span>
+          <input id="recordSearch" type="text" placeholder="Search records by buyer, produce or type...">
+        </div>
+
+        <div class="header-actions">
+          <button style="border: none; background: none; color: #64748b; position: relative; cursor: pointer;">
+            <span class="material-symbols-outlined">notifications</span>
+            <span style="position: absolute; top: 2px; right: 2px; width: 6px; height: 6px; background: #f43f5e; border-radius: 50%; border: 1px solid white;"></span>
+          </button>
+          <div class="profile-section">
+            <div style="text-align: right;">
+              <p id="profileName" style="font-size: 12px; font-weight: 800; margin: 0;">Loading...</p>
+              <p id="profileMeta" style="font-size: 9px; font-weight: 600; color: #94a3b8; text-transform: uppercase; margin-top: 2px;">Sales Agent</p>
+            </div>
+            <div class="profile-img">
+              <span class="material-symbols-outlined">person</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <main class="scrollable-view custom-scrollbar">
+        <section id="overview" class="view-section active">
+          <div class="hero">
+            <div class="hero-content">
+              <h2 id="overviewGreeting">Good day, Sales Agent</h2>
+              <p id="userContext">Loading user details...</p>
+            </div>
+            <svg class="hero-svg" viewBox="0 0 400 400">
+              <path d="M0,256L48,229.3C96,203,192,149,288,154.7C384,160,480,224,576,218.7C672,213,768,139,864,122.7C960,107,1056,149,1152,154.7C1248,160,1344,128,1392,112L1440,96L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path>
+            </svg>
+          </div>
+
+          <div class="kpi-grid">
+            <div class="card">
+              <div class="kpi-card-header">
+                <div class="icon-box bg-emerald-light"><span class="material-symbols-outlined text-emerald">payments</span></div>
+              </div>
+              <span class="card-title">Cash Sales Count</span>
+              <div class="card-value"><span id="cashCount">0</span></div>
+            </div>
+            <div class="card">
+              <div class="kpi-card-header">
+                <div class="icon-box bg-blue-light"><span class="material-symbols-outlined text-blue">credit_card</span></div>
+              </div>
+              <span class="card-title">Credit Sales Count</span>
+              <div class="card-value"><span id="creditCount">0</span></div>
+            </div>
+            <div class="card">
+              <div class="kpi-card-header">
+                <div class="icon-box bg-amber-light"><span class="material-symbols-outlined text-amber">account_balance_wallet</span></div>
+              </div>
+              <span class="card-title">Total Cash Amount</span>
+              <div class="card-value"><span id="cashTotal">0</span><span class="card-unit">UGX</span></div>
+            </div>
+            <div class="card">
+              <div class="kpi-card-header">
+                <div class="icon-box bg-rose-light"><span class="material-symbols-outlined text-rose">trending_up</span></div>
+              </div>
+              <span class="card-title">Total Credit Due</span>
+              <div class="card-value"><span id="creditTotal">0</span><span class="card-unit">UGX</span></div>
+            </div>
+          </div>
+        </section>
+
+        <section id="cash-sales" class="view-section">
+          <h3 class="section-title">Record Cash Sale</h3>
+          <article class="card">
+            <form id="cashSaleForm">
+              <div class="form-grid">
+                <div class="field-wrap">
+                  <label for="cashProduceName">Produce Name</label>
+                  <input id="cashProduceName" name="produceName" required>
+                </div>
+                <div class="field-wrap">
+                  <label for="cashBuyerName">Buyer Name</label>
+                  <input id="cashBuyerName" name="buyerName" required>
+                </div>
+                <div class="field-wrap">
+                  <label for="cashTonnage">Tonnage (kg)</label>
+                  <input id="cashTonnage" name="tonnageKg" type="number" min="1" required>
+                </div>
+                <div class="field-wrap">
+                  <label for="cashAmount">Amount Paid (UGX)</label>
+                  <input id="cashAmount" name="amountPaid" type="number" min="1" required>
+                </div>
+                <div class="field-wrap">
+                  <label for="cashDate">Sale Date</label>
+                  <input id="cashDate" name="date" type="datetime-local">
+                </div>
+              </div>
+              <button class="btn-primary" type="submit">Save Cash Sale</button>
+              <div id="cashStatus" class="status"></div>
+            </form>
+          </article>
+        </section>
+
+        <section id="credit-sales" class="view-section">
+          <h3 class="section-title">Record Credit Sale</h3>
+          <article class="card">
+            <form id="creditSaleForm">
+              <div class="form-grid">
+                <div class="field-wrap">
+                  <label for="creditProduceName">Produce Name</label>
+                  <input id="creditProduceName" name="produceName" required>
+                </div>
+                <div class="field-wrap">
+                  <label for="creditBuyerName">Buyer Name</label>
+                  <input id="creditBuyerName" name="buyerName" required>
+                </div>
+                <div class="field-wrap">
+                  <label for="creditTonnage">Tonnage (kg)</label>
+                  <input id="creditTonnage" name="tonnageKg" type="number" min="1" required>
+                </div>
+                <div class="field-wrap">
+                  <label for="creditAmount">Amount Due (UGX)</label>
+                  <input id="creditAmount" name="amountDue" type="number" min="1" required>
+                </div>
+                <div class="field-wrap">
+                  <label for="creditNin">Buyer NIN</label>
+                  <input id="creditNin" name="buyerNIN" required>
+                </div>
+                <div class="field-wrap">
+                  <label for="creditContact">Buyer Contact</label>
+                  <input id="creditContact" name="buyerContact" required>
+                </div>
+                <div class="field-wrap">
+                  <label for="creditLocation">Buyer Location</label>
+                  <input id="creditLocation" name="buyerLocation" required>
+                </div>
+                <div class="field-wrap">
+                  <label for="creditDueDate">Due Date</label>
+                  <input id="creditDueDate" name="dueDate" type="date" required>
+                </div>
+              </div>
+              <button class="btn-primary" type="submit">Save Credit Sale</button>
+              <div id="creditStatus" class="status"></div>
+            </form>
+          </article>
+        </section>
+
+        <section id="records" class="view-section">
+          <h3 class="section-title">Recent Sales Records</h3>
+          <article class="card">
+            <div class="table-container custom-scrollbar">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Type</th>
+                    <th>Produce</th>
+                    <th>Buyer</th>
+                    <th>Tonnage (kg)</th>
+                    <th>Amount (UGX)</th>
+                    <th>Status / Due</th>
+                    <th>Date</th>
+                  </tr>
+                </thead>
+                <tbody id="recordsTableBody"></tbody>
+              </table>
+            </div>
+            <div id="recordsStatus" class="status"></div>
+          </article>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script src="../js/salesAgentDashboard.js"></script>
+</body>
+
+</html>
+
+
+
+
+
+
+
+
+

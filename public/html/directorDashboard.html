@@ -2,767 +2,311 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
+    <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KGL Wholesale Dashboard</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
-    <style>
-        :root {
-            --primary: #2F8860;
-            --primary-light: #ecfdf5;
-            --bg-body: #F8FAFC;
-            --sidebar-bg: #1E293B;
-            --sidebar-hover: #334155;
-            --text-main: #0F172A;
-            --text-muted: #64748B;
-            --border-color: #E2E8F0;
-            --card-bg: #FFFFFF;
-            --skeleton: #F1F5F9;
-            --skeleton-animate: #E2E8F0;
-            --transition: all 0.2s ease-in-out;
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: var(--bg-body);
-            color: var(--text-main);
-            overflow: hidden;
-            display: flex;
-            height: 100vh;
-        }
-
-        /* --- Skeletons --- */
-        @keyframes pulse {
-            0% {
-                background-color: var(--skeleton);
-            }
-
-            50% {
-                background-color: var(--skeleton-animate);
-            }
-
-            100% {
-                background-color: var(--skeleton);
-            }
-        }
-
-        .skeleton {
-            animation: pulse 1.5s infinite ease-in-out;
-            border-radius: 4px;
-        }
-
-        /* --- Sidebar --- */
-        .sidebar {
-            width: 260px;
-            background-color: var(--sidebar-bg);
-            color: #CBD5E1;
-            display: flex;
-            flex-direction: column;
-            border-right: 1px solid #1e293b;
-            flex-shrink: 0;
-        }
-
-        .logo {
-            margin: 20px;
-        }
-
-        .sidebar-search {
-            padding: 0 16px;
-            margin-bottom: 16px;
-            position: relative;
-        }
-
-        .sidebar-search input {
-            width: 100%;
-            background-color: #334155;
-            border: none;
-            padding: 10px 12px 10px 36px;
-            border-radius: 8px;
-            font-size: 12px;
-            color: white;
-            outline: none;
-        }
-
-        .sidebar-search i {
-            position: absolute;
-            left: 28px;
-            top: 50%;
-            transform: translateY(-50%);
-            font-size: 16px;
-            color: #64748B;
-        }
-
-        .nav-section {
-            padding: 0 12px;
-            flex: 1;
-            overflow-y: auto;
-        }
-
-        .nav-label {
-            font-size: 10px;
-            text-transform: uppercase;
-            font-weight: 700;
-            color: #64748B;
-            letter-spacing: 0.1em;
-            padding: 24px 12px 12px 12px;
-        }
-
-        .nav-item {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 10px 12px;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: var(--transition);
-            text-decoration: none;
-            color: #94A3B8;
-            margin-bottom: 4px;
-        }
-
-        .nav-item i {
-            font-size: 10px;
-        }
-
-        .nav-item-content {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .nav-item span {
-            font-size: 12px;
-            font-weight: 500;
-        }
-
-        .nav-item:hover {
-            background-color: var(--sidebar-hover);
-            color: white;
-        }
-
-        .nav-item.active {
-            background-color: var(--primary);
-            color: white;
-        }
-
-        .sidebar-footer {
-            padding: 16px;
-            border-top: 1px solid #1e293b;
-        }
-
-        /* --- Header --- */
-        .main-container {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-
-        header {
-            height: 64px;
-            background-color: white;
-            border-bottom: 1px solid var(--border-color);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0 32px;
-            flex-shrink: 0;
-        }
-
-        .header-search {
-            flex: 1;
-            max-width: 500px;
-            position: relative;
-        }
-
-        .header-search i {
-            position: absolute;
-            left: 16px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: var(--text-muted);
-        }
-
-        .header-search input {
-            width: 100%;
-            padding: 10px 16px 10px 48px;
-            border: none;
-            background-color: var(--bg-body);
-            border-radius: 20px;
-            font-size: 14px;
-            outline: none;
-            transition: var(--transition);
-        }
-
-        .header-actions {
-            display: flex;
-            align-items: center;
-            gap: 24px;
-        }
-
-        .icon-btn {
-            background: none;
-            border: none;
-            color: var(--text-muted);
-            cursor: pointer;
-            padding: 8px;
-            border-radius: 50%;
-            display: flex;
-            transition: var(--transition);
-        }
-
-        .icon-btn:hover {
-            background-color: var(--bg-body);
-        }
-
-        .profile-btn {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            cursor: pointer;
-        }
-
-        .profile-img {
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            object-fit: cover;
-            border: 2px solid var(--primary);
-        }
-
-        .profile-info p {
-            font-size: 14px;
-            font-weight: 700;
-        }
-
-        .profile-info span {
-            font-size: 10px;
-            color: var(--text-muted);
-            font-weight: 500;
-        }
-
-        /* --- Content Area --- */
-        .content {
-            flex: 1;
-            padding: 32px;
-            overflow-y: auto;
-        }
-
-        .breadcrumbs {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 11px;
-            font-weight: 700;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            margin-bottom: 32px;
-        }
-
-        .breadcrumbs span.current {
-            color: var(--text-main);
-        }
-
-        /* --- Metric Grid --- */
-        .metric-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-            gap: 24px;
-            margin-bottom: 32px;
-        }
-
-        .card {
-            background-color: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 20px;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-            transition: var(--transition);
-        }
-
-        .card:hover {
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        }
-
-        .metric-card {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-        }
-
-        .metric-label {
-            font-size: 11px;
-            font-weight: 700;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            margin-bottom: 12px;
-        }
-
-        .metric-value-skeleton {
-            width: 120px;
-            height: 28px;
-            margin-bottom: 8px;
-        }
-
-        .metric-sub-skeleton {
-            width: 80px;
-            height: 12px;
-        }
-
-        .metric-icon-box {
-            padding: 10px;
-            border-radius: 10px;
-            display: flex;
-        }
-
-        .icon-green {
-            background-color: var(--primary-light);
-            color: var(--primary);
-        }
-
-        .icon-blue {
-            background-color: #eff6ff;
-            color: #2563eb;
-        }
-
-        .icon-red {
-            background-color: #fef2f2;
-            color: #dc2626;
-        }
-
-        .icon-orange {
-            background-color: #fffaf2;
-            color: #f59e0b;
-        }
-
-        /* --- Main Grid --- */
-        .main-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 24px;
-            margin-bottom: 24px;
-        }
-
-        .span-2 {
-            grid-column: span 2;
-        }
-
-        .card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 24px;
-        }
-
-        .card-header h4 {
-            font-size: 14px;
-            font-weight: 700;
-        }
-
-        .chart-placeholder {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 20px 0;
-        }
-
-        .donut-skeleton {
-            width: 180px;
-            height: 180px;
-            border-radius: 50%;
-            border: 16px solid var(--skeleton);
-            position: relative;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .donut-inner-skeleton {
-            width: 40px;
-            height: 16px;
-        }
-
-        .bar-chart-container {
-            display: flex;
-            align-items: flex-end;
-            justify-content: space-between;
-            height: 200px;
-            gap: 8px;
-        }
-
-        .bar-skeleton {
-            flex: 1;
-            background-color: var(--skeleton);
-            border-radius: 4px 4px 0 0;
-        }
-
-        /* --- List Display --- */
-        .branch-list {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-
-        .branch-item {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-        }
-
-        .branch-rank {
-            font-size: 11px;
-            font-weight: 700;
-            color: #CBD5E1;
-        }
-
-        .branch-info {
-            flex: 1;
-        }
-
-        .branch-name-skeleton {
-            width: 70%;
-            height: 12px;
-            margin-bottom: 6px;
-        }
-
-        .branch-loc-skeleton {
-            width: 40%;
-            height: 8px;
-        }
-
-        .branch-tag-skeleton {
-            width: 40px;
-            height: 16px;
-            border-radius: 10px;
-        }
-
-        /* --- Scrollbar --- */
-        ::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        ::-webkit-scrollbar-track {
-            background: transparent;
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 10px;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-            background: #94a3b8;
-        }
-
-        @media (max-width: 1024px) {
-            .sidebar {
-                display: none;
-            }
-
-            .main-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .span-2 {
-                grid-column: auto;
-            }
-        }
-    </style>
+    <title>Karibu Groceries - Director Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1"
+        rel="stylesheet">
+    <link rel="stylesheet" href="../css/dashboardShared.css">
 </head>
 
 <body>
-
-    <!-- Sidebar -->
-    <aside class="sidebar">
-        <div class="logo">
-            <img src="../assets/logo/logo-horizontal.png" alt="kgl-logo" srcset="" width="auto" height="60px">
-        </div>
-
-        <div class="sidebar-search">
-            <i class="material-icons-round">search</i>
-            <input type="text" placeholder="Search menu...">
-        </div>
-
-        <div class="nav-section">
-            <div class="nav-label">Main Navigation</div>
-            <a href="#" class="nav-item active">
-                <div class="nav-item-content">
-                    <i class="material-icons-round">grid_view</i>
-                    <span>Overview</span>
+    <div class="app-shell">
+        <aside class="sidebar">
+            <div class="sidebar-logo-container">
+                <div>
+                    <img src="../assets/logo/logo-icon.png" width="auto" height="40px" alt="kgl-logo">
                 </div>
-            </a>
-            <a href="#" class="nav-item">
-                <div class="nav-item-content">
-                    <i class="material-icons-round">inventory_2</i>
-                    <span>Inventory</span>
-                </div>
-            </a>
-            <a href="#" class="nav-item">
-                <div class="nav-item-content">
-                    <i class="material-icons-round">point_of_sale</i>
-                    <span>Sales</span>
-                </div>
-            </a>
-            <a href="#" class="nav-item">
-                <div class="nav-item-content">
-                    <i class="material-icons-round">local_shipping</i>
-                    <span>Orders</span>
-                </div>
-            </a>
-            <a href="#" class="nav-item">
-                <div class="nav-item-content">
-                    <i class="material-icons-round">account_tree</i>
-                    <span>Branches</span>
-                </div>
-            </a>
-
-            <div class="nav-label">Administration</div>
-            <a href="#" class="nav-item">
-                <div class="nav-item-content">
-                    <i class="material-icons-round">manage_accounts</i>
-                    <span>Staff Roles</span>
-                </div>
-                <i class="material-icons-round" style="font-size: 14px;">chevron_right</i>
-            </a>
-            <a href="#" class="nav-item">
-                <div class="nav-item-content">
-                    <i class="material-icons-round">settings</i>
-                    <span>Settings</span>
-                </div>
-            </a>
-        </div>
-
-        <div class="sidebar-footer">
-            <div class="nav-item" style="margin-bottom: 0;">
-                <div class="nav-item-content">
-                    <i class="material-icons-round" style="color: #f87171;">logout</i>
-                    <span style="color: #f87171;">Log Out</span>
-                </div>
-            </div>
-        </div>
-    </aside>
-
-    <!-- Main Container -->
-    <div class="main-container">
-        <header>
-            <div class="header-search">
-                <i class="material-icons-round">search</i>
-                <input type="text" placeholder="Search operations, stock levels...">
+                <span class="logo-text">KaribuGroceries</span>
             </div>
 
-            <div class="header-actions">
-                <div style="display: flex; gap: 8px;">
-                    <button class="icon-btn"><i class="material-icons-round">dark_mode</i></button>
-                    <button class="icon-btn" style="position: relative;">
-                        <i class="material-icons-round">notifications</i>
+            <nav class="nav-list custom-scrollbar">
+                <button class="nav-item active" data-target="overview">
+                    <span class="material-symbols-outlined">grid_view</span>
+                    <span class="nav-label">Dashboard Overview</span>
+                </button>
+                <button class="nav-item" data-target="sales">
+                    <span class="material-symbols-outlined">payments</span>
+                    <span class="nav-label">Sales Summary</span>
+                </button>
+                <button class="nav-item" data-target="procurement">
+                    <span class="material-symbols-outlined">shopping_cart</span>
+                    <span class="nav-label">Procurement Summary</span>
+                </button>
+                <button class="nav-item" data-target="credit">
+                    <span class="material-symbols-outlined">credit_card</span>
+                    <span class="nav-label">Credit Sales Summary</span>
+                </button>
+                <button class="nav-item" data-target="stock">
+                    <span class="material-symbols-outlined">inventory_2</span>
+                    <span class="nav-label">Stock Summary</span>
+                </button>
+            </nav>
+
+            <div style="padding: 12px; border-top: 1px solid rgba(255,255,255,0.05); margin-top: auto;">
+                <button id="logoutButton" class="nav-item" style="color: #f43f5e;">
+                    <span class="material-symbols-outlined">logout</span>
+                    <span class="nav-label">Logout</span>
+                </button>
+            </div>
+        </aside>
+
+        <div class="main-content-area">
+            <header class="header">
+                <div class="search-bar">
+                    <span class="material-symbols-outlined search-icon">search</span>
+                    <input id="searchInput" type="text" placeholder="Search by branch, produce or buyer...">
+                </div>
+
+                <div class="header-actions">
+                    <button style="border: none; background: none; color: #64748b; position: relative; cursor: pointer;">
+                        <span class="material-symbols-outlined">notifications</span>
                         <span
-                            style="position: absolute; top: 6px; right: 6px; width: 6px; height: 6px; background-color: #ef4444; border-radius: 50%;"></span>
+                            style="position: absolute; top: 2px; right: 2px; width: 6px; height: 6px; background: #f43f5e; border-radius: 50%; border: 1px solid white;"></span>
                     </button>
-                </div>
-
-                <div style="width: 1px; height: 32px; background-color: var(--border-color);"></div>
-
-                <div class="profile-btn">
-                    <img src="https://picsum.photos/id/64/100/100" alt="jaques" class="profile-img">
-                    <div class="profile-info">
-                        <p>Jaques Bavurhe</p>
-                        <span>Super Admin</span>
-                    </div>
-                </div>
-            </div>
-        </header>
-
-        <div class="content">
-            <div class="breadcrumbs">
-                <span>Dashboards</span>
-                <i class="material-icons-round" style="font-size: 14px;">chevron_right</i>
-                <span class="current">Overview</span>
-            </div>
-
-            <!-- Metrics -->
-            <div class="metric-grid">
-                <div class="card metric-card">
-                    <div>
-                        <div class="metric-label">Total Inventory Value</div>
-                        <div class="skeleton metric-value-skeleton"></div>
-                        <div class="skeleton metric-sub-skeleton"></div>
-                    </div>
-                    <div class="metric-icon-box icon-green">
-                        <i class="material-icons-round">account_balance_wallet</i>
-                    </div>
-                </div>
-
-                <div class="card metric-card">
-                    <div>
-                        <div class="metric-label">Pending Shipments</div>
-                        <div class="skeleton metric-value-skeleton"></div>
-                        <div class="skeleton metric-sub-skeleton"></div>
-                    </div>
-                    <div class="metric-icon-box icon-blue">
-                        <i class="material-icons-round">local_shipping</i>
-                    </div>
-                </div>
-
-                <div class="card metric-card">
-                    <div>
-                        <div class="metric-label">Low Stock Alerts</div>
-                        <div class="skeleton metric-value-skeleton"></div>
-                        <div class="skeleton metric-sub-skeleton"></div>
-                    </div>
-                    <div class="metric-icon-box icon-red">
-                        <i class="material-icons-round">error_outline</i>
-                    </div>
-                </div>
-
-                <div class="card metric-card">
-                    <div>
-                        <div class="metric-label">Daily Revenue</div>
-                        <div class="skeleton metric-value-skeleton"></div>
-                        <div class="skeleton metric-sub-skeleton"></div>
-                    </div>
-                    <div class="metric-icon-box icon-orange">
-                        <i class="material-icons-round">payments</i>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Charts Grid -->
-            <div class="main-grid">
-                <div class="card">
-                    <div class="card-header">
-                        <h4>Stock Distribution</h4>
-                        <i class="material-icons-round" style="color: var(--text-muted); cursor: pointer;">more_vert</i>
-                    </div>
-                    <div class="chart-placeholder">
-                        <div class="donut-skeleton">
-                            <div class="skeleton donut-inner-skeleton"></div>
+                    <div class="profile-section">
+                        <div style="text-align: right;">
+                            <p id="profileName" style="font-size: 12px; font-weight: 800; margin: 0;">Loading...</p>
+                            <p id="profileRole"
+                                style="font-size: 9px; font-weight: 600; color: #94a3b8; text-transform: uppercase; margin-top: 2px;">
+                                Director</p>
                         </div>
-                    </div>
-                    <div style="display: flex; justify-content: space-around; margin-top: 24px;">
-                        <div style="text-align: center;">
-                            <div class="skeleton" style="width: 40px; height: 12px; margin-bottom: 4px;"></div>
-                            <div class="skeleton" style="width: 24px; height: 8px;"></div>
-                        </div>
-                        <div style="text-align: center;">
-                            <div class="skeleton" style="width: 40px; height: 12px; margin-bottom: 4px;"></div>
-                            <div class="skeleton" style="width: 24px; height: 8px;"></div>
-                        </div>
-                        <div style="text-align: center;">
-                            <div class="skeleton" style="width: 40px; height: 12px; margin-bottom: 4px;"></div>
-                            <div class="skeleton" style="width: 24px; height: 8px;"></div>
+                        <div class="profile-img">
+                            <span class="material-symbols-outlined">person</span>
                         </div>
                     </div>
                 </div>
+            </header>
 
-                <div class="card span-2">
-                    <div class="card-header">
-                        <h4>Monthly Wholesale Sales</h4>
-                        <div style="display: flex; gap: 8px;">
-                            <div class="skeleton" style="width: 60px; height: 24px; border-radius: 4px;"></div>
-                            <div class="skeleton" style="width: 60px; height: 24px; border-radius: 4px;"></div>
+            <main class="scrollable-view custom-scrollbar">
+                <section id="overview" class="view-section active">
+                    <div class="hero">
+                        <div class="hero-content">
+                            <h2 id="overviewGreeting">Welcome, Director</h2>
+                            <p id="overviewSubtext">Loading system-wide sales insights...</p>
                         </div>
+                        <svg class="hero-svg" viewBox="0 0 400 400">
+                            <path
+                                d="M0,256L48,229.3C96,203,192,149,288,154.7C384,160,480,224,576,218.7C672,213,768,139,864,122.7C960,107,1056,149,1152,154.7C1248,160,1344,128,1392,112L1440,96L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z">
+                            </path>
+                        </svg>
                     </div>
-                    <div class="bar-chart-container">
-                        <div class="skeleton bar-skeleton" style="height: 40%;"></div>
-                        <div class="skeleton bar-skeleton" style="height: 60%;"></div>
-                        <div class="skeleton bar-skeleton" style="height: 30%;"></div>
-                        <div class="skeleton bar-skeleton" style="height: 80%;"></div>
-                        <div class="skeleton bar-skeleton" style="height: 50%;"></div>
-                        <div class="skeleton bar-skeleton" style="height: 90%;"></div>
-                        <div class="skeleton bar-skeleton" style="height: 65%;"></div>
-                        <div class="skeleton bar-skeleton" style="height: 45%;"></div>
-                        <div class="skeleton bar-skeleton" style="height: 75%;"></div>
-                        <div class="skeleton bar-skeleton" style="height: 55%;"></div>
-                        <div class="skeleton bar-skeleton" style="height: 85%;"></div>
-                        <div class="skeleton bar-skeleton" style="height: 60%;"></div>
-                    </div>
-                </div>
-            </div>
 
-            <!-- Bottom Row -->
-            <div class="main-grid">
-                <div class="card">
-                    <div class="card-header">
-                        <h4>Recent Transactions</h4>
-                        <span style="font-size: 11px; font-weight: 700; color: var(--primary); cursor: pointer;">View
-                            All</span>
-                    </div>
-                    <div style="padding: 40px 0; text-align: center; opacity: 0.5;">
-                        <i class="material-icons-round"
-                            style="font-size: 48px; color: #CBD5E1; margin-bottom: 12px;">receipt_long</i>
-                        <p style="font-size: 12px; font-weight: 600; color: var(--text-muted);">No records found</p>
-                    </div>
-                </div>
-
-                <div class="card">
-                    <div class="card-header">
-                        <h4>Storage Capacity</h4>
-                        <i class="material-icons-round" style="font-size: 18px; color: #CBD5E1;">info_outline</i>
-                    </div>
-                    <div class="chart-placeholder">
-                        <div class="donut-skeleton"
-                            style="border-bottom-color: transparent; width: 140px; height: 140px; border-radius: 50% 50% 0 0; transform: rotate(-45deg); border-width: 12px;">
-                        </div>
-                        <div class="skeleton" style="width: 80px; height: 20px; margin-top: 12px;"></div>
-                        <div class="skeleton" style="width: 100%; height: 8px; margin-top: 24px; border-radius: 4px;">
-                        </div>
-                    </div>
-                </div>
-
-                <div class="card">
-                    <div class="card-header">
-                        <h4>Branch Performance</h4>
-                        <div class="skeleton" style="width: 70px; height: 20px;"></div>
-                    </div>
-                    <div class="branch-list">
-                        <div class="branch-item">
-                            <span class="branch-rank">#01</span>
-                            <div class="branch-info">
-                                <div class="skeleton branch-name-skeleton"></div>
-                                <div class="skeleton branch-loc-skeleton"></div>
+                    <div class="kpi-grid">
+                        <div class="card">
+                            <div class="kpi-card-header">
+                                <div class="icon-box bg-emerald-light"><span
+                                        class="material-symbols-outlined text-emerald">monitoring</span></div>
                             </div>
-                            <div class="skeleton branch-tag-skeleton"></div>
+                            <span class="card-title">Total Cash Revenue</span>
+                            <div class="card-value"><span id="kpiTotalRevenue">0</span> <span class="card-unit">UGX</span></div>
                         </div>
-                        <div class="branch-item">
-                            <span class="branch-rank">#02</span>
-                            <div class="branch-info">
-                                <div class="skeleton branch-name-skeleton"></div>
-                                <div class="skeleton branch-loc-skeleton"></div>
+                        <div class="card">
+                            <div class="kpi-card-header">
+                                <div class="icon-box bg-rose-light"><span
+                                        class="material-symbols-outlined text-rose">credit_card</span></div>
                             </div>
-                            <div class="skeleton branch-tag-skeleton"></div>
+                            <span class="card-title">Credit Outstanding</span>
+                            <div class="card-value"><span id="kpiCreditOutstanding">0</span> <span class="card-unit">UGX</span></div>
                         </div>
-                        <div class="branch-item">
-                            <span class="branch-rank">#03</span>
-                            <div class="branch-info">
-                                <div class="skeleton branch-name-skeleton"></div>
-                                <div class="skeleton branch-loc-skeleton"></div>
+                        <div class="card">
+                            <div class="kpi-card-header">
+                                <div class="icon-box bg-blue-light"><span
+                                        class="material-symbols-outlined text-blue">receipt_long</span></div>
                             </div>
-                            <div class="skeleton branch-tag-skeleton"></div>
+                            <span class="card-title">Total Sales Records</span>
+                            <div class="card-value"><span id="kpiSalesRecords">0</span></div>
                         </div>
-                        <div class="branch-item">
-                            <span class="branch-rank">#04</span>
-                            <div class="branch-info">
-                                <div class="skeleton branch-name-skeleton"></div>
-                                <div class="skeleton branch-loc-skeleton"></div>
+                        <div class="card">
+                            <div class="kpi-card-header">
+                                <div class="icon-box bg-amber-light"><span
+                                        class="material-symbols-outlined text-amber">inventory_2</span></div>
                             </div>
-                            <div class="skeleton branch-tag-skeleton"></div>
+                            <span class="card-title">Total Tonnage Sold</span>
+                            <div class="card-value"><span id="kpiTonnageSold">0</span> <span class="card-unit">KG</span></div>
                         </div>
                     </div>
-                </div>
-            </div>
+                </section>
+
+                <section id="sales" class="view-section">
+                    <h3 class="section-title">Sales Summary</h3>
+                    <div class="kpi-grid">
+                        <div class="card">
+                            <span class="card-title">Total Sales Value per Branch (Cash + Credit)</span>
+                            <div id="salesByBranchContainer" style="margin-top: 12px;"></div>
+                        </div>
+                        <div class="card">
+                            <span class="card-title">Top Sales per Produce</span>
+                            <div id="topProduceContainer" style="margin-top: 12px; font-size: 13px;"></div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <span class="card-title">Recent Sales Log</span>
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>ID</th>
+                                        <th>Branch</th>
+                                        <th>Produce</th>
+                                        <th>Value (UGX)</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="recentSalesBody"></tbody>
+                            </table>
+                        </div>
+                        <p id="salesStatus" class="status"></p>
+                    </div>
+                </section>
+
+                <section id="procurement" class="view-section">
+                    <h3 class="section-title">Procurement Summary</h3>
+                    <div class="kpi-grid">
+                        <div class="card">
+                            <span class="card-title">Total Procurement Cost</span>
+                            <div class="card-value"><span id="procurementTotalCost">0</span> <span class="card-unit">UGX</span></div>
+                        </div>
+                        <div class="card">
+                            <span class="card-title">Total Procured Tonnage</span>
+                            <div class="card-value"><span id="procurementTotalTonnage">0</span> <span class="card-unit">KG</span></div>
+                        </div>
+                        <div class="card">
+                            <span class="card-title">Procurement Records</span>
+                            <div class="card-value"><span id="procurementTotalRecords">0</span></div>
+                        </div>
+                        <div class="card">
+                            <span class="card-title">Active Dealers</span>
+                            <div class="card-value"><span id="procurementActiveDealers">0</span></div>
+                        </div>
+                    </div>
+                    <div class="kpi-grid">
+                        <div class="card">
+                            <span class="card-title">Procurement Cost per Branch</span>
+                            <div id="procurementByBranchContainer" style="margin-top: 12px;"></div>
+                        </div>
+                        <div class="card">
+                            <span class="card-title">Top Procured Produce (By Cost)</span>
+                            <div id="procurementTopProduceContainer" style="margin-top: 12px; font-size: 13px;"></div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <span class="card-title">Recent Procurement Log</span>
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Branch</th>
+                                        <th>Produce</th>
+                                        <th>Tonnage (KG)</th>
+                                        <th>Cost (UGX)</th>
+                                        <th>Dealer</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="procurementTableBody"></tbody>
+                            </table>
+                        </div>
+                        <p id="procurementStatus" class="status"></p>
+                    </div>
+                </section>
+
+                <section id="credit" class="view-section">
+                    <h3 class="section-title">Credit Management</h3>
+                    <div class="kpi-grid">
+                        <div class="card">
+                            <span class="card-title">Total Credit Issued</span>
+                            <div class="card-value"><span id="creditIssued">0</span> <span class="card-unit">UGX</span></div>
+                        </div>
+                        <div class="card">
+                            <span class="card-title">Total Unpaid Balance</span>
+                            <div class="card-value text-rose"><span id="creditUnpaid">0</span> <span class="card-unit">UGX</span></div>
+                        </div>
+                        <div class="card">
+                            <span class="card-title">Overdue Payments</span>
+                            <div class="card-value text-rose"><span id="creditOverdue">0</span> <span class="card-unit">UGX</span></div>
+                        </div>
+                        <div class="card">
+                            <span class="card-title">Credit per Branch</span>
+                            <div id="creditByBranchContainer" style="font-size: 12px; margin-top: 8px;"></div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <span class="card-title">Outstanding Debtors</span>
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Customer/Entity</th>
+                                        <th>Branch</th>
+                                        <th>Amount (UGX)</th>
+                                        <th>Days Overdue</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="debtorsBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="stock" class="view-section">
+                    <h3 class="section-title">Inventory & Stock</h3>
+                    <div class="kpi-grid">
+                        <div class="card">
+                            <span class="card-title">Total Stock Quantity</span>
+                            <div class="card-value"><span id="stockTotalQuantity">0</span> <span class="card-unit">KG</span></div>
+                        </div>
+                        <div class="card">
+                            <span class="card-title">Estimated Stock Value</span>
+                            <div class="card-value"><span id="stockTotalValue">0</span> <span class="card-unit">UGX</span></div>
+                        </div>
+                        <div class="card">
+                            <span class="card-title">Tracked Stock Items</span>
+                            <div class="card-value"><span id="stockTotalItems">0</span></div>
+                        </div>
+                        <div class="card">
+                            <span class="card-title">Low Stock Alerts</span>
+                            <div class="card-value text-rose"><span id="stockLowCount">0</span></div>
+                        </div>
+                    </div>
+                    <div class="kpi-grid">
+                        <div class="card">
+                            <span class="card-title">Stock per Branch</span>
+                            <div id="stockByBranchContainer" style="margin-top: 12px;"></div>
+                        </div>
+                        <div class="card">
+                            <span class="card-title">Top Inventory by Produce</span>
+                            <div id="stockByProduceContainer" style="margin-top: 12px; font-size: 13px;"></div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <span class="card-title">Low Stock Items</span>
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Produce</th>
+                                        <th>Type</th>
+                                        <th>Branch</th>
+                                        <th>Quantity (KG)</th>
+                                        <th>Selling Price (UGX)</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="lowStockBody"></tbody>
+                            </table>
+                        </div>
+                        <p id="stockStatus" class="status"></p>
+                    </div>
+                </section>
+            </main>
         </div>
     </div>
 
+    <script src="../js/directorDashboard.js"></script>
 </body>
 
 </html>

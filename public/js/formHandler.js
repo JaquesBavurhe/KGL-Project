@@ -108,12 +108,12 @@ document.addEventListener("DOMContentLoaded", () => {
         .forEach((el) => (el.textContent = ""));
       let isValid = true;
 
-      const email = document.getElementById("email").value.trim();
+      const username = document.getElementById("username").value.trim();
       const password = document.getElementById("password").value;
-      // Email validation
-      if (email.length < 2) {
-        document.getElementById("emailError").innerHTML =
-          '<i class="fa-solid fa-circle-exclamation"></i>Email must be at least 2 characters.';
+      // Username validation
+      if (username.length < 2) {
+        document.getElementById("usernameError").innerHTML =
+          '<i class="fa-solid fa-circle-exclamation"></i>Username must be at least 2 characters.';
         isValid = false;
       }
       // Password validation
@@ -124,7 +124,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
       if (isValid) {
         try {
-          const response = await fetch("/login", {
+          const response = await fetch(`/login`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ username, password }),
@@ -159,6 +159,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
       togglePassword.classList.toggle("fa-eye");
       togglePassword.classList.toggle("fa-eye-slash");
+    });
+  }
+
+  const logoutButton = document.getElementById("logoutButton");
+  if (logoutButton) {
+    logoutButton.addEventListener("click", () => {
+      window.location.href = "/logout";
     });
   }
 });
