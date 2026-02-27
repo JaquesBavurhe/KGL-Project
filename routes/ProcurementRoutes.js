@@ -1,26 +1,53 @@
 const express = require("express");
 const router = express.Router();
 const Procurement = require("../models/Procurement");
+const Stock = require("../models/Stock");
 const { authenticateToken } = require("../middleware/authMiddleware");
 
 const canRecordProcurement = (role) => ["Manager"].includes(role);
 
 
-// viewing procurement records. Only directors can view procurement records.
+const ensureBranchAccess = (req, requestedBranch) => {
+  const { role, branch } = req.user;
+
+  if (role === "Director") {
+    return requestedBranch || undefined;
+  }
+
+  return branch;
+};
+
+const escapeRegex = (value) =>
+  String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+
+
+
 router.get("/procurement/records", authenticateToken(), async (req, res) => {
   try {
-    if (req.user.role !== "Director") {
-      return res
-        .status(403)
-        .json({ message: "Only directors can view procurement records." });
+    const { role, branch: userBranch } = req.user;
+
+    if (!["Director", "Manager"].includes(role)) {
+      return res.status(403).json({
+        message: "Only directors or managers can view procurement records.",
+      });
     }
 
-    const records = await Procurement.find({})
+    if (role !== "Director" && !userBranch) {
+      return res
+        .status(403)
+        .json({ message: "Branch assignment is required for this account." });
+    }
+
+    const query = role === "Director" ? {} : { branch: userBranch };
+
+    const records = await Procurement.find(query)
       .sort({ date: -1 })
       .populate("recordedBy", "fullName username role branch");
 
     return res.status(200).json({
       message: "Procurement records fetched successfully",
+      scope: role === "Director" ? "all" : userBranch,
       records,
     });
   } catch (error) {
@@ -28,17 +55,30 @@ router.get("/procurement/records", authenticateToken(), async (req, res) => {
   }
 });
 
-// viewing procurement summary.
+
+
 router.get("/procurement/summary", authenticateToken(), async (req, res) => {
   try {
-    if (req.user.role !== "Director") {
+    const { role, branch: userBranch } = req.user;
+
+    if (!["Director", "Manager"].includes(role)) {
+      return res.status(403).json({
+        message: "Only directors or managers can view procurement summaries.",
+      });
+    }
+
+    if (role !== "Director" && !userBranch) {
       return res
         .status(403)
-        .json({ message: "Only directors can view procurement summaries." });
+        .json({ message: "Branch assignment is required for this account." });
     }
+
+    const matchStage =
+      role === "Director" ? [] : [{ $match: { branch: userBranch } }];
 
     const [summaryByBranch, summaryByProduce] = await Promise.all([
       Procurement.aggregate([
+        ...matchStage,
         {
           $group: {
             _id: "$branch",
@@ -51,6 +91,7 @@ router.get("/procurement/summary", authenticateToken(), async (req, res) => {
         { $sort: { _id: 1 } },
       ]),
       Procurement.aggregate([
+        ...matchStage,
         {
           $group: {
             _id: "$produceName",
@@ -78,6 +119,7 @@ router.get("/procurement/summary", authenticateToken(), async (req, res) => {
 
     return res.status(200).json({
       message: "Procurement summary fetched successfully",
+      scope: role === "Director" ? "all" : userBranch,
       totals,
       summaryByBranch,
       summaryByProduce,
@@ -88,7 +130,7 @@ router.get("/procurement/summary", authenticateToken(), async (req, res) => {
 });
 
 
-// recording procurement. Only managers can record procurement.
+
 router.post("/procurement", authenticateToken(), async (req, res) => {
   try {
     if (!canRecordProcurement(req.user.role)) {
@@ -114,6 +156,11 @@ router.post("/procurement", authenticateToken(), async (req, res) => {
       return res.status(400).json({ message: "Branch is required." });
     }
 
+    const normalizedProduceName = String(produceName || "").trim();
+    const normalizedProduceType = String(produceType || "").trim();
+    const numericTonnage = Number(tonnage);
+    const numericSellingPrice = Number(sellingPrice);
+
     const record = await Procurement.create({
       produceName,
       produceType,
@@ -127,8 +174,38 @@ router.post("/procurement", authenticateToken(), async (req, res) => {
       date,
     });
 
+    try {
+      const existingStock = await Stock.findOne({
+        branch: effectiveBranch,
+        produceName: {
+          $regex: new RegExp(`^${escapeRegex(normalizedProduceName)}$`, "i"),
+        },
+      });
+
+      if (existingStock) {
+        existingStock.quantity += numericTonnage;
+        existingStock.produceType =
+          normalizedProduceType || existingStock.produceType;
+        existingStock.sellingPrice = numericSellingPrice;
+        existingStock.lastUpdatedBy = req.user.id;
+        await existingStock.save();
+      } else {
+        await Stock.create({
+          produceName: normalizedProduceName,
+          produceType: normalizedProduceType,
+          branch: effectiveBranch,
+          quantity: numericTonnage,
+          sellingPrice: numericSellingPrice,
+          lastUpdatedBy: req.user.id,
+        });
+      }
+    } catch (stockError) {
+      await Procurement.findByIdAndDelete(record._id);
+      throw stockError;
+    }
+
     return res.status(201).json({
-      message: "Procurement recorded successfully",
+      message: "Procurement recorded and stock updated successfully",
       procurement: record,
     });
   } catch (error) {

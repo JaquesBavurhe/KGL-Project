@@ -31,22 +31,24 @@ const authenticateToken =
 
 //
 
-const ensureDirector = (req, res, next) => {
-  if (req.user.role !== "Director") {
-    return res.status(403).json({ message: "Access denied: Directors only" });
+const requireRole = (allowedRoles) => (req, res, next) => {
+  if (!allowedRoles.includes(req.user.role)) {
+    return res.status(403).send("Access denied");
   }
+
   return next();
 };
 
-const ensureManagerOrAgent = (req, res, next) => {
-  if (!["Manager", "Sales Agent"].includes(req.user.role)) {
-    return res.status(403).json({ message: "Access denied: Managers and Sales Agents only" });
-  }
-  return next();
-}
+const ensureDirector = requireRole(["Director"]);
+const ensureManager = requireRole(["Manager"]);
+const ensureAgent = requireRole(["Sales Agent"]);
+const ensureManagerOrAgent = requireRole(["Manager", "Sales Agent"]);
 
 module.exports = {
   authenticateToken,
   ensureDirector,
-  ensureManagerOrAgent
+  ensureManager,
+  ensureAgent,
+  ensureManagerOrAgent,
+  requireRole,
 };

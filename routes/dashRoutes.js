@@ -1,14 +1,14 @@
 const express = require("express");
 const router = express.Router();
 const path = require("path");
-const { authenticateToken } = require("../middleware/authMiddleware");
+const {
+  authenticateToken,
+  ensureDirector,
+  ensureManager,
+  ensureAgent,
+} = require("../middleware/authMiddleware");
 
-const requireRole = (allowedRoles) => (req, res, next) => {
-  if (!allowedRoles.includes(req.user.role)) {
-    return res.status(403).send("Access denied");
-  }
-  return next();
-};
+//
 
 router.get(
   "/dashboard",
@@ -18,7 +18,11 @@ router.get(
       return res.redirect("/dashboard/director");
     }
 
-    if (["Manager", "Sales Agent"].includes(req.user.role)) {
+    if (req.user.role === "Manager") {
+      return res.redirect("/dashboard/manager");
+    }
+
+    if (req.user.role === "Sales Agent") {
       return res.redirect("/dashboard/sales-agent");
     }
 
@@ -29,16 +33,25 @@ router.get(
 router.get(
   "/dashboard/director",
   authenticateToken({ redirectOnFail: true }),
-  requireRole(["Director"]),
+  ensureDirector,
   (req, res) => {
     res.sendFile(path.join(__dirname, "../public/html/directorDashboard.html"));
   },
 );
 
 router.get(
+  "/dashboard/manager",
+  authenticateToken({ redirectOnFail: true }),
+  ensureManager,
+  (req, res) => {
+    res.sendFile(path.join(__dirname, "../public/html/managerDashboard.html"));
+  },
+);
+
+router.get(
   "/dashboard/sales-agent",
   authenticateToken({ redirectOnFail: true }),
-  requireRole(["Manager", "Sales Agent"]),
+  ensureAgent,
   (req, res) => {
     res.sendFile(
       path.join(__dirname, "../public/html/salesAgentDashboard.html"),

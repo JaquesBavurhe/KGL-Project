@@ -22,7 +22,7 @@ const buildToken = (user) =>
 const authCookieOptions = {
   httpOnly: true,
   sameSite: "lax",
-  secure: process.env.NODE_ENV === "production",
+  secure: process.env.NODE_ENV === "production", //
   maxAge: 24 * 60 * 60 * 1000,
 };
 
@@ -82,6 +82,7 @@ router.post("/signup", async (req, res) => {
   }
 });
 
+//
 router.get("/auth/me", authenticateToken(), async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select("-password");

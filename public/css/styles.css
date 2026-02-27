@@ -211,13 +211,13 @@ body {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  max-width: 440px;
+  max-width: 400px;
   width: 100%;
   margin: 0 auto;
 }
 
 .form-header h2 {
-  font-size: 1.9rem;
+  font-size: 1.55rem;
   font-weight: 800;
   color: var(--slate-900);
   letter-spacing: -0.025em;
@@ -225,25 +225,26 @@ body {
 
 .form-header p {
   color: var(--slate-500);
-  margin-top: 0.75rem;
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
   font-weight: 500;
-  margin-bottom: 2rem;
+  margin-bottom: 1.4rem;
 }
 
 .login-form {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1rem;
 }
 
 .input-group {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.35rem;
 }
 
 .input-group label {
-  font-size: 0.875rem;
+  font-size: 0.8rem;
   font-weight: 700;
   color: var(--slate-700);
   margin-left: 0.25rem;
@@ -256,7 +257,7 @@ body {
 }
 
 .forgot-link {
-  font-size: 0.875rem;
+  font-size: 0.8rem;
   font-weight: 700;
   color: var(--accent-orange);
   text-decoration: none;
@@ -270,26 +271,30 @@ body {
 
 .input-icon {
   position: absolute;
-  left: 1.25rem;
+  left: 1rem;
   color: var(--slate-400);
-  width: 20px;
-  height: 20px;
+  width: 16px;
+  height: 16px;
   pointer-events: none;
   transition: var(--transition);
 }
 
 .input-wrapper input {
   width: 100%;
-  height: 3rem;
-  padding: 0 1.25rem 0 3.5rem;
-  border-radius: 1rem;
+  height: 2.6rem;
+  padding: 0 1rem 0 2.7rem;
+  border-radius: 0.8rem;
   border: 1px solid var(--slate-200);
   background: var(--slate-50);
-  font-size: 0.9rem;
+  font-size: 0.82rem;
   font-weight: 500;
   color: var(--slate-800);
   outline: none;
   transition: var(--transition);
+}
+
+.input-wrapper input[type="password"] {
+  padding-right: 2.8rem;
 }
 
 .input-wrapper input:focus {
@@ -303,21 +308,38 @@ body {
   color: var(--primary-green);
 }
 
+.toggle-password {
+  position: absolute;
+  right: 0.9rem;
+  top: 50%;
+  transform: translateY(-50%);
+  margin-left: 0;
+  font-size: 0.95rem;
+  color: var(--slate-500);
+  cursor: pointer;
+  z-index: 2;
+  transition: var(--transition);
+}
+
+.toggle-password:hover {
+  color: var(--slate-800);
+}
+
 .submit-btn {
-  margin-top: 1rem;
-  height: 3rem;
+  margin-top: 0.5rem;
+  height: 2.6rem;
   background: linear-gradient(90deg, #2f8860 0%, #3db37a 100%);
   color: white;
   font-weight: 600;
-  font-size: 1rem;
+  font-size: 0.86rem;
   border: none;
-  border-radius: 1rem;
+  border-radius: 0.8rem;
   cursor: pointer;
   box-shadow: 0 10px 15px -3px rgba(47, 136, 96, 0.2);
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.75rem;
+  gap: 0.5rem;
   transition: var(--transition);
 }
 

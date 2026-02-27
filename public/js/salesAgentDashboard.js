@@ -16,6 +16,59 @@ const escapeHtml = (value) =>
 
 let allRowsCache = [];
 
+const fetchSaleQuote = async (produceName, tonnageKg) => {
+  const params = new URLSearchParams({
+    produceName: String(produceName || "").trim(),
+    tonnageKg: String(tonnageKg || ""),
+  });
+  const res = await fetch(`/sales/price-quote?${params.toString()}`);
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(body.message || "Failed to fetch price quote.");
+  }
+  return body.quote;
+};
+
+const setupAutoAmountCalculation = ({ formId, amountName, statusId }) => {
+  const form = document.getElementById(formId);
+  if (!form) return;
+
+  const produceInput = form.elements.produceName;
+  const tonnageInput = form.elements.tonnageKg;
+  const amountInput = form.elements[amountName];
+  const statusEl = document.getElementById(statusId);
+
+  const update = async () => {
+    const produceName = produceInput?.value?.trim() || "";
+    const tonnageKg = Number(tonnageInput?.value || 0);
+
+    if (!produceName || !tonnageKg) {
+      if (amountInput) amountInput.value = "";
+      return;
+    }
+
+    try {
+      const quote = await fetchSaleQuote(produceName, tonnageKg);
+      if (amountInput) amountInput.value = String(quote.amount);
+      if (statusEl && !statusEl.textContent.startsWith("Saving")) {
+        statusEl.textContent = `Auto-priced at UGX ${formatNumber(quote.unitPrice)} per KG.`;
+      }
+    } catch (error) {
+      if (amountInput) amountInput.value = "";
+      if (statusEl && !statusEl.textContent.startsWith("Saving")) {
+        statusEl.textContent = error.message;
+      }
+    }
+  };
+
+  produceInput?.addEventListener("input", () => {
+    update().catch(() => {});
+  });
+  tonnageInput?.addEventListener("input", () => {
+    update().catch(() => {});
+  });
+};
+
 const setNavSection = (targetId) => {
   const navItems = document.querySelectorAll(".nav-item[data-target]");
   const sections = document.querySelectorAll(".view-section");
@@ -192,7 +245,6 @@ const handleCashSubmit = async (event) => {
     produceName: form.produceName.value.trim(),
     buyerName: form.buyerName.value.trim(),
     tonnageKg: Number(form.tonnageKg.value),
-    amountPaid: Number(form.amountPaid.value),
     date: toIsoFromDateTimeLocal(form.date.value),
   };
 
@@ -226,7 +278,6 @@ const handleCreditSubmit = async (event) => {
     produceName: form.produceName.value.trim(),
     buyerName: form.buyerName.value.trim(),
     tonnageKg: Number(form.tonnageKg.value),
-    amountDue: Number(form.amountDue.value),
     buyerNIN: form.buyerNIN.value.trim(),
     buyerContact: form.buyerContact.value.trim(),
     buyerLocation: form.buyerLocation.value.trim(),
@@ -264,6 +315,16 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
   document.getElementById("recordSearch")?.addEventListener("input", applySearchFilter);
+  setupAutoAmountCalculation({
+    formId: "cashSaleForm",
+    amountName: "amountPaid",
+    statusId: "cashStatus",
+  });
+  setupAutoAmountCalculation({
+    formId: "creditSaleForm",
+    amountName: "amountDue",
+    statusId: "creditStatus",
+  });
 
   document.getElementById("logoutButton")?.addEventListener("click", () => {
     window.location.href = "/logout";
