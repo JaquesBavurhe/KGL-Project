@@ -5,9 +5,12 @@ const CreditSale = require("../models/Credit");
 const Stock = require("../models/Stock");
 const { authenticateToken } = require("../middleware/authMiddleware");
 
+// Roles allowed to create sales transactions.
 const canRecordSales = (role) => ["Manager", "Sales Agent"].includes(role);
+// Stock quantity threshold used for low-stock warnings.
 const LOW_STOCK_THRESHOLD_KG = 100;
 
+// Limits branch access: directors can query any branch, others are scoped to their own.
 const ensureBranchAccess = (req, requestedBranch) => {
   const { role, branch } = req.user;
 
@@ -18,9 +21,11 @@ const ensureBranchAccess = (req, requestedBranch) => {
   return branch;
 };
 
+// Escapes user input before building case-insensitive regex queries.
 const escapeRegex = (value) =>
   String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
+// Converts low-stock items into alert objects for the frontend.
 const buildStockAlerts = (items, thresholdKg) => {
   return (items || []).map((item) => {
     const qty = Number(item.quantity || 0);
@@ -43,6 +48,7 @@ const buildStockAlerts = (items, thresholdKg) => {
   });
 };
 
+// Atomically reserves stock for a sale, or throws a detailed stock error.
 const reserveStockForSale = async ({
   branch,
   produceName,
@@ -88,6 +94,7 @@ const reserveStockForSale = async ({
   throw error;
 };
 
+// Computes sale amount from current stock selling price and requested tonnage.
 const quoteSaleAmount = async ({ branch, produceName, tonnageKg }) => {
   const normalizedProduceName = String(produceName || "").trim();
   const numericTonnage = Number(tonnageKg);
@@ -124,6 +131,7 @@ const quoteSaleAmount = async ({ branch, produceName, tonnageKg }) => {
   };
 };
 
+// Returns sales records (cash, credit, or both) within the caller's allowed scope.
 router.get("/sales/records", authenticateToken(), async (req, res) => {
   try {
     const { role, branch: userBranch } = req.user;
@@ -163,6 +171,7 @@ router.get("/sales/records", authenticateToken(), async (req, res) => {
   }
 });
 
+// Returns branch-level aggregated sales totals (director-only).
 router.get("/sales/summary", authenticateToken(), async (req, res) => {
   try {
     if (req.user.role !== "Director") {
@@ -206,6 +215,7 @@ router.get("/sales/summary", authenticateToken(), async (req, res) => {
   }
 });
 
+// Returns a live sale price quote from stock data.
 router.get("/sales/price-quote", authenticateToken(), async (req, res) => {
   try {
     if (!canRecordSales(req.user.role)) {
@@ -235,6 +245,7 @@ router.get("/sales/price-quote", authenticateToken(), async (req, res) => {
   }
 });
 
+// Returns stock KPIs, breakdowns, and low-stock alerts for the allowed scope.
 router.get("/stock/summary", authenticateToken(), async (req, res) => {
   try {
     const { role, branch: userBranch } = req.user;
@@ -321,6 +332,7 @@ router.get("/stock/summary", authenticateToken(), async (req, res) => {
   }
 });
 
+// Returns only low-stock/out-of-stock alerts for directors/managers.
 router.get("/stock/alerts", authenticateToken(), async (req, res) => {
   try {
     const { role, branch: userBranch } = req.user;
@@ -360,6 +372,7 @@ router.get("/stock/alerts", authenticateToken(), async (req, res) => {
   }
 });
 
+// Records a cash sale and deducts stock quantity.
 router.post("/sales/cash", authenticateToken(), async (req, res) => {
   try {
     if (!canRecordSales(req.user.role)) {
@@ -427,6 +440,7 @@ router.post("/sales/cash", authenticateToken(), async (req, res) => {
   }
 });
 
+// Records a credit sale and deducts stock quantity.
 router.post("/sales/credit", authenticateToken(), async (req, res) => {
   try {
     if (!canRecordSales(req.user.role)) {

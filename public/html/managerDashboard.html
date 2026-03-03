@@ -127,57 +127,48 @@
         <section id="cash-sales" class="view-section">
           <h3 class="section-title">Record Cash Sale</h3>
           <article class="card">
-            <form id="cashSaleForm">
-              <div class="form-grid">
-                <div class="field-wrap"><label>Produce Name</label><input name="produceName" required></div>
-                <div class="field-wrap"><label>Buyer Name</label><input name="buyerName" required></div>
-                <div class="field-wrap"><label>Tonnage (kg)</label><input name="tonnageKg" type="number" min="1" required></div>
-                <div class="field-wrap"><label>Amount Paid (UGX)</label><input name="amountPaid" type="number" min="1" required readonly></div>
-                <div class="field-wrap"><label>Sale Date</label><input name="date" type="datetime-local"></div>
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+              <div>
+                <span class="card-title" style="margin-bottom: 6px;">Cash Sales</span>
+                <p style="font-size: 13px; color: #64748b;">Use the form modal to record a cash transaction.</p>
               </div>
-              <button class="btn-primary" type="submit">Save Cash Sale</button>
-              <div id="cashStatus" class="status"></div>
-            </form>
+              <button id="openCashSaleModalButton" class="btn-primary" type="button">
+                <span class="material-symbols-outlined" style="font-size: 18px; vertical-align: middle;">add</span>
+                New Cash Sale
+              </button>
+            </div>
           </article>
         </section>
 
         <section id="credit-sales" class="view-section">
           <h3 class="section-title">Record Credit Sale</h3>
           <article class="card">
-            <form id="creditSaleForm">
-              <div class="form-grid">
-                <div class="field-wrap"><label>Produce Name</label><input name="produceName" required></div>
-                <div class="field-wrap"><label>Buyer Name</label><input name="buyerName" required></div>
-                <div class="field-wrap"><label>Tonnage (kg)</label><input name="tonnageKg" type="number" min="1" required></div>
-                <div class="field-wrap"><label>Amount Due (UGX)</label><input name="amountDue" type="number" min="1" required readonly></div>
-                <div class="field-wrap"><label>Buyer NIN</label><input name="buyerNIN" required></div>
-                <div class="field-wrap"><label>Buyer Contact</label><input name="buyerContact" required></div>
-                <div class="field-wrap"><label>Buyer Location</label><input name="buyerLocation" required></div>
-                <div class="field-wrap"><label>Due Date</label><input name="dueDate" type="date" required></div>
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+              <div>
+                <span class="card-title" style="margin-bottom: 6px;">Credit Sales</span>
+                <p style="font-size: 13px; color: #64748b;">Use the form modal to record a credit transaction.</p>
               </div>
-              <button class="btn-primary" type="submit">Save Credit Sale</button>
-              <div id="creditStatus" class="status"></div>
-            </form>
+              <button id="openCreditSaleModalButton" class="btn-primary" type="button">
+                <span class="material-symbols-outlined" style="font-size: 18px; vertical-align: middle;">add</span>
+                New Credit Sale
+              </button>
+            </div>
           </article>
         </section>
 
         <section id="procurement" class="view-section">
           <h3 class="section-title">Record Procurement</h3>
           <article class="card">
-            <form id="procurementForm">
-              <div class="form-grid">
-                <div class="field-wrap"><label>Produce Name</label><input name="produceName" required></div>
-                <div class="field-wrap"><label>Produce Type</label><input name="produceType" required></div>
-                <div class="field-wrap"><label>Tonnage (kg)</label><input name="tonnage" type="number" min="1" required></div>
-                <div class="field-wrap"><label>Total Cost (UGX)</label><input name="cost" type="number" min="1" required></div>
-                <div class="field-wrap"><label>Dealer Name</label><input name="dealerName" required></div>
-                <div class="field-wrap"><label>Dealer Contact</label><input name="dealerContact" required></div>
-                <div class="field-wrap"><label>Selling Price Per KG (UGX)</label><input name="sellingPrice" type="number" min="0" required></div>
-                <div class="field-wrap"><label>Date</label><input name="date" type="datetime-local"></div>
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+              <div>
+                <span class="card-title" style="margin-bottom: 6px;">Procurement</span>
+                <p style="font-size: 13px; color: #64748b;">Use the form modal to record a procurement entry.</p>
               </div>
-              <button class="btn-primary" type="submit">Save Procurement</button>
-              <div id="procurementStatus" class="status"></div>
-            </form>
+              <button id="openProcurementModalButton" class="btn-primary" type="button">
+                <span class="material-symbols-outlined" style="font-size: 18px; vertical-align: middle;">add</span>
+                New Procurement
+              </button>
+            </div>
           </article>
         </section>
 
@@ -215,6 +206,7 @@
                     <th>Cost (UGX)</th>
                     <th>Dealer</th>
                     <th>Date</th>
+                    <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody id="procurementRecordsBody"></tbody>
@@ -262,6 +254,225 @@
           </article>
         </section>
       </main>
+    </div>
+  </div>
+
+  <div id="cashSaleModal" class="modal-overlay">
+    <div class="modal-panel">
+      <div class="modal-header">
+        <h4>New Cash Sale</h4>
+        <button id="closeCashSaleModalButton" class="icon-btn" type="button" aria-label="Close cash sale modal">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+      <form id="cashSaleForm" class="form-grid">
+        <div class="input-group">
+          <label for="cashProduceName">Produce Name</label>
+          <div class="input-wrapper modal-input-wrapper">
+            <span class="material-symbols-outlined input-icon">eco</span>
+            <input id="cashProduceName" class="modal-input" name="produceName" required>
+          </div>
+        </div>
+        <div class="input-group">
+          <label for="cashBuyerName">Buyer Name</label>
+          <div class="input-wrapper modal-input-wrapper">
+            <span class="material-symbols-outlined input-icon">person</span>
+            <input id="cashBuyerName" class="modal-input" name="buyerName" required>
+          </div>
+        </div>
+        <div class="input-group">
+          <label for="cashTonnage">Tonnage (kg)</label>
+          <div class="input-wrapper modal-input-wrapper">
+            <span class="material-symbols-outlined input-icon">scale</span>
+            <input id="cashTonnage" class="modal-input" name="tonnageKg" type="number" min="1" required>
+          </div>
+        </div>
+        <div class="input-group">
+          <label for="cashAmount">Amount Paid (UGX)</label>
+          <div class="input-wrapper modal-input-wrapper">
+            <span class="material-symbols-outlined input-icon">payments</span>
+            <input id="cashAmount" class="modal-input" name="amountPaid" type="number" min="1" required readonly>
+          </div>
+        </div>
+        <div class="input-group">
+          <label for="cashDate">Sale Date</label>
+          <div class="input-wrapper modal-input-wrapper">
+            <span class="material-symbols-outlined input-icon">event</span>
+            <input id="cashDate" class="modal-input" name="date" type="datetime-local">
+          </div>
+        </div>
+        <div class="modal-actions" style="grid-column: 1 / -1; margin-top: 0;">
+          <button id="cancelCashSaleModalButton" class="btn-secondary" type="button">Cancel</button>
+          <button class="btn-primary" type="submit">Save Cash Sale</button>
+        </div>
+      </form>
+      <div id="cashStatus" class="status"></div>
+    </div>
+  </div>
+
+  <div id="creditSaleModal" class="modal-overlay">
+    <div class="modal-panel">
+      <div class="modal-header">
+        <h4>New Credit Sale</h4>
+        <button id="closeCreditSaleModalButton" class="icon-btn" type="button" aria-label="Close credit sale modal">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+      <form id="creditSaleForm" class="form-grid">
+        <div class="input-group">
+          <label for="creditProduceName">Produce Name</label>
+          <div class="input-wrapper modal-input-wrapper">
+            <span class="material-symbols-outlined input-icon">eco</span>
+            <input id="creditProduceName" class="modal-input" name="produceName" required>
+          </div>
+        </div>
+        <div class="input-group">
+          <label for="creditBuyerName">Buyer Name</label>
+          <div class="input-wrapper modal-input-wrapper">
+            <span class="material-symbols-outlined input-icon">person</span>
+            <input id="creditBuyerName" class="modal-input" name="buyerName" required>
+          </div>
+        </div>
+        <div class="input-group">
+          <label for="creditTonnage">Tonnage (kg)</label>
+          <div class="input-wrapper modal-input-wrapper">
+            <span class="material-symbols-outlined input-icon">scale</span>
+            <input id="creditTonnage" class="modal-input" name="tonnageKg" type="number" min="1" required>
+          </div>
+        </div>
+        <div class="input-group">
+          <label for="creditAmount">Amount Due (UGX)</label>
+          <div class="input-wrapper modal-input-wrapper">
+            <span class="material-symbols-outlined input-icon">payments</span>
+            <input id="creditAmount" class="modal-input" name="amountDue" type="number" min="1" required readonly>
+          </div>
+        </div>
+        <div class="input-group">
+          <label for="creditNin">Buyer NIN</label>
+          <div class="input-wrapper modal-input-wrapper">
+            <span class="material-symbols-outlined input-icon">badge</span>
+            <input id="creditNin" class="modal-input" name="buyerNIN" required>
+          </div>
+        </div>
+        <div class="input-group">
+          <label for="creditContact">Buyer Contact</label>
+          <div class="input-wrapper modal-input-wrapper">
+            <span class="material-symbols-outlined input-icon">call</span>
+            <input id="creditContact" class="modal-input" name="buyerContact" required>
+          </div>
+        </div>
+        <div class="input-group">
+          <label for="creditLocation">Buyer Location</label>
+          <div class="input-wrapper modal-input-wrapper">
+            <span class="material-symbols-outlined input-icon">location_on</span>
+            <input id="creditLocation" class="modal-input" name="buyerLocation" required>
+          </div>
+        </div>
+        <div class="input-group">
+          <label for="creditDueDate">Due Date</label>
+          <div class="input-wrapper modal-input-wrapper">
+            <span class="material-symbols-outlined input-icon">event_upcoming</span>
+            <input id="creditDueDate" class="modal-input" name="dueDate" type="date" required>
+          </div>
+        </div>
+        <div class="modal-actions" style="grid-column: 1 / -1; margin-top: 0;">
+          <button id="cancelCreditSaleModalButton" class="btn-secondary" type="button">Cancel</button>
+          <button class="btn-primary" type="submit">Save Credit Sale</button>
+        </div>
+      </form>
+      <div id="creditStatus" class="status"></div>
+    </div>
+  </div>
+
+  <div id="procurementModal" class="modal-overlay">
+    <div class="modal-panel">
+      <div class="modal-header">
+        <h4 id="procurementModalTitle">New Procurement</h4>
+        <button id="closeProcurementModalButton" class="icon-btn" type="button" aria-label="Close procurement modal">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+      <form id="procurementForm" class="form-grid">
+        <div class="input-group">
+          <label for="procurementProduceName">Produce Name</label>
+          <div class="input-wrapper modal-input-wrapper">
+            <span class="material-symbols-outlined input-icon">eco</span>
+            <input id="procurementProduceName" class="modal-input" name="produceName" required>
+          </div>
+        </div>
+        <div class="input-group">
+          <label for="procurementProduceType">Produce Type</label>
+          <div class="input-wrapper modal-input-wrapper">
+            <span class="material-symbols-outlined input-icon">category</span>
+            <input id="procurementProduceType" class="modal-input" name="produceType" required>
+          </div>
+        </div>
+        <div class="input-group">
+          <label for="procurementTonnage">Tonnage (kg)</label>
+          <div class="input-wrapper modal-input-wrapper">
+            <span class="material-symbols-outlined input-icon">scale</span>
+            <input id="procurementTonnage" class="modal-input" name="tonnage" type="number" min="1" required>
+          </div>
+        </div>
+        <div class="input-group">
+          <label for="procurementCost">Total Cost (UGX)</label>
+          <div class="input-wrapper modal-input-wrapper">
+            <span class="material-symbols-outlined input-icon">payments</span>
+            <input id="procurementCost" class="modal-input" name="cost" type="number" min="1" required>
+          </div>
+        </div>
+        <div class="input-group">
+          <label for="procurementDealerName">Dealer Name</label>
+          <div class="input-wrapper modal-input-wrapper">
+            <span class="material-symbols-outlined input-icon">person</span>
+            <input id="procurementDealerName" class="modal-input" name="dealerName" required>
+          </div>
+        </div>
+        <div class="input-group">
+          <label for="procurementDealerContact">Dealer Contact</label>
+          <div class="input-wrapper modal-input-wrapper">
+            <span class="material-symbols-outlined input-icon">call</span>
+            <input id="procurementDealerContact" class="modal-input" name="dealerContact" required>
+          </div>
+        </div>
+        <div class="input-group">
+          <label for="procurementSellingPrice">Selling Price Per KG (UGX)</label>
+          <div class="input-wrapper modal-input-wrapper">
+            <span class="material-symbols-outlined input-icon">sell</span>
+            <input id="procurementSellingPrice" class="modal-input" name="sellingPrice" type="number" min="0" required>
+          </div>
+        </div>
+        <div class="input-group">
+          <label for="procurementDate">Date</label>
+          <div class="input-wrapper modal-input-wrapper">
+            <span class="material-symbols-outlined input-icon">event</span>
+            <input id="procurementDate" class="modal-input" name="date" type="datetime-local">
+          </div>
+        </div>
+        <div class="modal-actions" style="grid-column: 1 / -1; margin-top: 0;">
+          <button id="cancelProcurementModalButton" class="btn-secondary" type="button">Cancel</button>
+          <button id="procurementSubmitButton" class="btn-primary" type="submit">Save Procurement</button>
+        </div>
+      </form>
+      <div id="procurementStatus" class="status"></div>
+    </div>
+  </div>
+
+  <div id="deleteProcurementModal" class="modal-overlay">
+    <div class="modal-panel" style="width: min(520px, 100%);">
+      <div class="modal-header">
+        <h4>Confirm Procurement Deletion</h4>
+        <button id="closeDeleteProcurementModalButton" class="icon-btn" type="button" aria-label="Close delete procurement modal">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+      <p id="deleteProcurementModalText" style="font-size: 14px; color: #475569;">
+        Are you sure you want to delete this procurement record?
+      </p>
+      <div class="modal-actions">
+        <button id="cancelDeleteProcurementButton" class="btn-secondary" type="button">Cancel</button>
+        <button id="confirmDeleteProcurementButton" class="btn-danger" type="button">Delete Record</button>
+      </div>
     </div>
   </div>
 

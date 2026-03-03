@@ -15,6 +15,33 @@ const escapeHtml = (value) =>
     .replaceAll("'", "&#39;");
 
 let allRowsCache = [];
+let activeSaleModalId = null;
+
+const openSaleModal = (modalId) => {
+  activeSaleModalId = modalId;
+  document.getElementById(modalId)?.classList.add("open");
+};
+
+const closeSaleModal = (modalId) => {
+  document.getElementById(modalId)?.classList.remove("open");
+  if (activeSaleModalId === modalId) {
+    activeSaleModalId = null;
+  }
+};
+
+const resetCashSaleForm = () => {
+  const form = document.getElementById("cashSaleForm");
+  form?.reset();
+  const status = document.getElementById("cashStatus");
+  if (status) status.textContent = "";
+};
+
+const resetCreditSaleForm = () => {
+  const form = document.getElementById("creditSaleForm");
+  form?.reset();
+  const status = document.getElementById("creditStatus");
+  if (status) status.textContent = "";
+};
 
 const fetchSaleQuote = async (produceName, tonnageKg) => {
   const params = new URLSearchParams({
@@ -262,8 +289,11 @@ const handleCashSubmit = async (event) => {
   }
 
   form.reset();
-  if (status) status.textContent = "Cash sale saved.";
+  if (status) status.textContent = "";
+  closeSaleModal("cashSaleModal");
   await loadDashboard();
+  const recordsStatus = document.getElementById("recordsStatus");
+  if (recordsStatus) recordsStatus.textContent = "Cash sale saved.";
   setNavSection("records");
 };
 
@@ -298,8 +328,11 @@ const handleCreditSubmit = async (event) => {
   }
 
   form.reset();
-  if (status) status.textContent = "Credit sale saved.";
+  if (status) status.textContent = "";
+  closeSaleModal("creditSaleModal");
   await loadDashboard();
+  const recordsStatus = document.getElementById("recordsStatus");
+  if (recordsStatus) recordsStatus.textContent = "Credit sale saved.";
   setNavSection("records");
 };
 
@@ -342,6 +375,49 @@ document.addEventListener("DOMContentLoaded", async () => {
       const status = document.getElementById("creditStatus");
       if (status) status.textContent = error.message;
     });
+  });
+
+  document.getElementById("openCashSaleModalButton")?.addEventListener("click", () => {
+    resetCashSaleForm();
+    openSaleModal("cashSaleModal");
+  });
+
+  document.getElementById("closeCashSaleModalButton")?.addEventListener("click", () => {
+    closeSaleModal("cashSaleModal");
+  });
+
+  document.getElementById("cancelCashSaleModalButton")?.addEventListener("click", () => {
+    closeSaleModal("cashSaleModal");
+  });
+
+  document.getElementById("openCreditSaleModalButton")?.addEventListener("click", () => {
+    resetCreditSaleForm();
+    openSaleModal("creditSaleModal");
+  });
+
+  document.getElementById("closeCreditSaleModalButton")?.addEventListener("click", () => {
+    closeSaleModal("creditSaleModal");
+  });
+
+  document.getElementById("cancelCreditSaleModalButton")?.addEventListener("click", () => {
+    closeSaleModal("creditSaleModal");
+  });
+
+  document.getElementById("cashSaleModal")?.addEventListener("click", (event) => {
+    if (event.target.id === "cashSaleModal") {
+      closeSaleModal("cashSaleModal");
+    }
+  });
+
+  document.getElementById("creditSaleModal")?.addEventListener("click", (event) => {
+    if (event.target.id === "creditSaleModal") {
+      closeSaleModal("creditSaleModal");
+    }
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key !== "Escape" || !activeSaleModalId) return;
+    closeSaleModal(activeSaleModalId);
   });
 
   try {

@@ -17,6 +17,66 @@ const escapeHtml = (value) =>
 let salesRowsCache = [];
 let procurementRowsCache = [];
 let alertsCache = [];
+let activeManagerModalId = null;
+let editingProcurementId = null;
+let pendingDeleteProcurementId = null;
+
+const openManagerModal = (modalId) => {
+  activeManagerModalId = modalId;
+  document.getElementById(modalId)?.classList.add("open");
+};
+
+const closeManagerModal = (modalId) => {
+  document.getElementById(modalId)?.classList.remove("open");
+  if (activeManagerModalId === modalId) {
+    activeManagerModalId = null;
+  }
+};
+
+const resetCashSaleForm = () => {
+  const form = document.getElementById("cashSaleForm");
+  form?.reset();
+  const status = document.getElementById("cashStatus");
+  if (status) status.textContent = "";
+};
+
+const resetCreditSaleForm = () => {
+  const form = document.getElementById("creditSaleForm");
+  form?.reset();
+  const status = document.getElementById("creditStatus");
+  if (status) status.textContent = "";
+};
+
+const resetProcurementForm = () => {
+  const form = document.getElementById("procurementForm");
+  form?.reset();
+  editingProcurementId = null;
+  const title = document.getElementById("procurementModalTitle");
+  const submitButton = document.getElementById("procurementSubmitButton");
+  if (title) title.textContent = "New Procurement";
+  if (submitButton) submitButton.textContent = "Save Procurement";
+  const status = document.getElementById("procurementStatus");
+  if (status) status.textContent = "";
+};
+
+const toDateTimeLocalInputValue = (value) => {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const pad = (num) => String(num).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(
+    date.getHours(),
+  )}:${pad(date.getMinutes())}`;
+};
+
+const openDeleteProcurementModal = () => {
+  openManagerModal("deleteProcurementModal");
+};
+
+const closeDeleteProcurementModal = () => {
+  closeManagerModal("deleteProcurementModal");
+  pendingDeleteProcurementId = null;
+};
 
 const fetchSaleQuote = async (produceName, tonnageKg) => {
   const params = new URLSearchParams({
@@ -120,7 +180,7 @@ const renderProcurementRows = (rows) => {
   if (!body) return;
 
   if (!rows.length) {
-    body.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#64748b;">No procurement records found.</td></tr>';
+    body.innerHTML = '<tr><td colspan="7" style="text-align:center; color:#64748b;">No procurement records found.</td></tr>';
     return;
   }
 
@@ -134,6 +194,14 @@ const renderProcurementRows = (rows) => {
         <td>${formatNumber(row.cost)}</td>
         <td>${escapeHtml(row.dealerName)}</td>
         <td>${row.date ? new Date(row.date).toLocaleString() : "-"}</td>
+        <td>
+          <button class="icon-btn edit procurement-edit-btn" data-id="${row._id}" type="button" aria-label="Edit procurement">
+            <span class="material-symbols-outlined">edit</span>
+          </button>
+          <button class="icon-btn delete procurement-delete-btn" data-id="${row._id}" type="button" aria-label="Delete procurement">
+            <span class="material-symbols-outlined">delete</span>
+          </button>
+        </td>
       </tr>
     `,
     )
@@ -367,8 +435,11 @@ const handleCashSubmit = async (event) => {
   }
 
   form.reset();
-  if (status) status.textContent = "Cash sale saved.";
+  if (status) status.textContent = "";
+  closeManagerModal("cashSaleModal");
   await loadManagerDashboard();
+  const recordsStatus = document.getElementById("recordsStatus");
+  if (recordsStatus) recordsStatus.textContent = "Cash sale saved.";
   setNavSection("records");
 };
 
@@ -402,8 +473,11 @@ const handleCreditSubmit = async (event) => {
   }
 
   form.reset();
-  if (status) status.textContent = "Credit sale saved.";
+  if (status) status.textContent = "";
+  closeManagerModal("creditSaleModal");
   await loadManagerDashboard();
+  const recordsStatus = document.getElementById("recordsStatus");
+  if (recordsStatus) recordsStatus.textContent = "Credit sale saved.";
   setNavSection("records");
 };
 
@@ -411,8 +485,9 @@ const handleProcurementSubmit = async (event) => {
   event.preventDefault();
   const form = event.currentTarget;
   const status = document.getElementById("procurementStatus");
+  const isEditing = Boolean(editingProcurementId);
 
-  if (status) status.textContent = "Saving procurement...";
+  if (status) status.textContent = isEditing ? "Updating procurement..." : "Saving procurement...";
 
   const payload = {
     produceName: form.produceName.value.trim(),
@@ -425,22 +500,83 @@ const handleProcurementSubmit = async (event) => {
     date: toIsoFromDateTimeLocal(form.date.value),
   };
 
-  const res = await fetch("/procurement", {
-    method: "POST",
+  const res = await fetch(isEditing ? `/procurement/${editingProcurementId}` : "/procurement", {
+    method: isEditing ? "PUT" : "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
 
   const body = await res.json().catch(() => ({}));
   if (!res.ok) {
-    if (status) status.textContent = body.message || "Failed to save procurement";
+    if (status) status.textContent = body.message || `Failed to ${isEditing ? "update" : "save"} procurement`;
     return;
   }
 
   form.reset();
-  if (status) status.textContent = "Procurement saved.";
+  if (status) status.textContent = "";
+  closeManagerModal("procurementModal");
   await loadManagerDashboard();
+  const recordsStatus = document.getElementById("recordsStatus");
+  if (recordsStatus) {
+    recordsStatus.textContent = body.message || (isEditing ? "Procurement updated." : "Procurement saved.");
+  }
   setNavSection("records");
+};
+
+const startEditProcurement = (id) => {
+  const target = procurementRowsCache.find((row) => String(row._id) === String(id));
+  if (!target) return;
+
+  const form = document.getElementById("procurementForm");
+  if (!form) return;
+
+  editingProcurementId = String(target._id);
+  form.produceName.value = target.produceName || "";
+  form.produceType.value = target.produceType || "";
+  form.tonnage.value = target.tonnage ?? "";
+  form.cost.value = target.cost ?? "";
+  form.dealerName.value = target.dealerName || "";
+  form.dealerContact.value = target.dealerContact || "";
+  form.sellingPrice.value = target.sellingPrice ?? "";
+  form.date.value = toDateTimeLocalInputValue(target.date);
+
+  const title = document.getElementById("procurementModalTitle");
+  const submitButton = document.getElementById("procurementSubmitButton");
+  const status = document.getElementById("procurementStatus");
+  if (title) title.textContent = "Edit Procurement";
+  if (submitButton) submitButton.textContent = "Update Procurement";
+  if (status) status.textContent = "";
+
+  openManagerModal("procurementModal");
+  setNavSection("procurement");
+};
+
+const promptDeleteProcurement = (id) => {
+  const target = procurementRowsCache.find((row) => String(row._id) === String(id));
+  if (!target) return;
+
+  pendingDeleteProcurementId = String(id);
+  const text = document.getElementById("deleteProcurementModalText");
+  if (text) {
+    text.textContent = `Delete procurement for "${target.produceName || "produce"}" from dealer "${target.dealerName || "-"}"? This action cannot be undone.`;
+  }
+  openDeleteProcurementModal();
+};
+
+const handleDeleteProcurement = async (id) => {
+  const recordsStatus = document.getElementById("recordsStatus");
+  if (recordsStatus) recordsStatus.textContent = "Deleting procurement...";
+
+  const response = await fetch(`/procurement/${id}`, { method: "DELETE" });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    if (recordsStatus) recordsStatus.textContent = result.message || "Failed to delete procurement.";
+    return;
+  }
+
+  await loadManagerDashboard();
+  const latestStatus = document.getElementById("recordsStatus");
+  if (latestStatus) latestStatus.textContent = result.message || "Procurement deleted successfully.";
 };
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -507,6 +643,102 @@ document.addEventListener("DOMContentLoaded", async () => {
       const status = document.getElementById("procurementStatus");
       if (status) status.textContent = error.message;
     });
+  });
+
+  document.getElementById("openCashSaleModalButton")?.addEventListener("click", () => {
+    resetCashSaleForm();
+    openManagerModal("cashSaleModal");
+  });
+  document.getElementById("closeCashSaleModalButton")?.addEventListener("click", () => {
+    closeManagerModal("cashSaleModal");
+  });
+  document.getElementById("cancelCashSaleModalButton")?.addEventListener("click", () => {
+    closeManagerModal("cashSaleModal");
+  });
+
+  document.getElementById("openCreditSaleModalButton")?.addEventListener("click", () => {
+    resetCreditSaleForm();
+    openManagerModal("creditSaleModal");
+  });
+  document.getElementById("closeCreditSaleModalButton")?.addEventListener("click", () => {
+    closeManagerModal("creditSaleModal");
+  });
+  document.getElementById("cancelCreditSaleModalButton")?.addEventListener("click", () => {
+    closeManagerModal("creditSaleModal");
+  });
+
+  document.getElementById("openProcurementModalButton")?.addEventListener("click", () => {
+    resetProcurementForm();
+    openManagerModal("procurementModal");
+  });
+  document.getElementById("closeProcurementModalButton")?.addEventListener("click", () => {
+    closeManagerModal("procurementModal");
+  });
+  document.getElementById("cancelProcurementModalButton")?.addEventListener("click", () => {
+    resetProcurementForm();
+    closeManagerModal("procurementModal");
+  });
+
+  document.getElementById("cashSaleModal")?.addEventListener("click", (event) => {
+    if (event.target.id === "cashSaleModal") {
+      closeManagerModal("cashSaleModal");
+    }
+  });
+  document.getElementById("creditSaleModal")?.addEventListener("click", (event) => {
+    if (event.target.id === "creditSaleModal") {
+      closeManagerModal("creditSaleModal");
+    }
+  });
+  document.getElementById("procurementModal")?.addEventListener("click", (event) => {
+    if (event.target.id === "procurementModal") {
+      resetProcurementForm();
+      closeManagerModal("procurementModal");
+    }
+  });
+
+  document.getElementById("procurementRecordsBody")?.addEventListener("click", (event) => {
+    const editButton = event.target.closest(".procurement-edit-btn");
+    const deleteButton = event.target.closest(".procurement-delete-btn");
+
+    if (editButton) {
+      startEditProcurement(editButton.dataset.id);
+    }
+
+    if (deleteButton) {
+      promptDeleteProcurement(deleteButton.dataset.id);
+    }
+  });
+
+  document.getElementById("closeDeleteProcurementModalButton")?.addEventListener("click", () => {
+    closeDeleteProcurementModal();
+  });
+  document.getElementById("cancelDeleteProcurementButton")?.addEventListener("click", () => {
+    closeDeleteProcurementModal();
+  });
+  document.getElementById("confirmDeleteProcurementButton")?.addEventListener("click", async () => {
+    if (!pendingDeleteProcurementId) {
+      closeDeleteProcurementModal();
+      return;
+    }
+
+    const idToDelete = pendingDeleteProcurementId;
+    closeDeleteProcurementModal();
+    try {
+      await handleDeleteProcurement(idToDelete);
+    } catch (error) {
+      const recordsStatus = document.getElementById("recordsStatus");
+      if (recordsStatus) recordsStatus.textContent = error.message;
+    }
+  });
+  document.getElementById("deleteProcurementModal")?.addEventListener("click", (event) => {
+    if (event.target.id === "deleteProcurementModal") {
+      closeDeleteProcurementModal();
+    }
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key !== "Escape" || !activeManagerModalId) return;
+    closeManagerModal(activeManagerModalId);
   });
 
   try {

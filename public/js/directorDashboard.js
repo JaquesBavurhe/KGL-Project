@@ -1,9 +1,20 @@
 const formatNumber = (value) => new Intl.NumberFormat("en-UG").format(value || 0);
+let directorUserId = null;
+let managedUsers = [];
+let pendingDeleteUserId = null;
 
 const toDateSafe = (value) => {
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? null : date;
 };
+
+const escapeHtml = (value) =>
+  String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
 
 const setNavSection = (targetId) => {
   const navItems = document.querySelectorAll(".nav-item[data-target]");
@@ -411,6 +422,218 @@ const renderStockSummary = (stockData) => {
     `Low stock threshold: ${formatNumber(thresholdKg)} KG`;
 };
 
+const syncUserBranchState = () => {
+  const roleField = document.getElementById("userRole");
+  const branchField = document.getElementById("userBranch");
+  if (!roleField || !branchField) return;
+
+  const isDirector = roleField.value === "Director";
+  branchField.disabled = isDirector;
+  if (isDirector) {
+    branchField.value = "";
+  }
+};
+
+const resetUserForm = () => {
+  document.getElementById("userId").value = "";
+  document.getElementById("userFullName").value = "";
+  document.getElementById("userUsername").value = "";
+  document.getElementById("userPhone").value = "";
+  document.getElementById("userRole").value = "";
+  document.getElementById("userBranch").value = "";
+  document.getElementById("userPassword").value = "";
+  document.getElementById("saveUserButton").textContent = "Save User";
+  document.getElementById("userModalTitle").textContent = "Add New User";
+  document.getElementById("userModalStatus").textContent = "";
+  syncUserBranchState();
+};
+
+const openUserModal = () => {
+  document.getElementById("userModal")?.classList.add("open");
+};
+
+const closeUserModal = () => {
+  document.getElementById("userModal")?.classList.remove("open");
+};
+
+const openDeleteUserModal = () => {
+  document.getElementById("deleteUserModal")?.classList.add("open");
+};
+
+const closeDeleteUserModal = () => {
+  document.getElementById("deleteUserModal")?.classList.remove("open");
+  pendingDeleteUserId = null;
+};
+
+const renderUsersTable = (users) => {
+  const body = document.getElementById("usersTableBody");
+  if (!body) return;
+
+  if (!users.length) {
+    body.innerHTML = '<tr><td colspan="7" style="text-align:center; color:#64748b;">No users found.</td></tr>';
+    return;
+  }
+
+  body.innerHTML = users
+    .map((user) => {
+      const createdAt = toDateSafe(user.createdAt)?.toLocaleDateString() || "-";
+      const disableDelete = String(user._id) === String(directorUserId) ? "disabled" : "";
+
+      return `
+        <tr>
+          <td>${escapeHtml(user.fullName || "-")}</td>
+          <td>${escapeHtml(user.username || "-")}</td>
+          <td>${escapeHtml(user.phone || "-")}</td>
+          <td>${escapeHtml(user.role || "-")}</td>
+          <td>${escapeHtml(user.branch || "-")}</td>
+          <td>${createdAt}</td>
+          <td>
+            <button class="icon-btn edit user-edit-btn" data-id="${user._id}" type="button" aria-label="Edit user">
+              <span class="material-symbols-outlined">edit</span>
+            </button>
+            <button class="icon-btn delete user-delete-btn" data-id="${user._id}" type="button" ${disableDelete} aria-label="Delete user">
+              <span class="material-symbols-outlined">delete</span>
+            </button>
+          </td>
+        </tr>
+      `;
+    })
+    .join("");
+};
+
+const loadUsers = async () => {
+  const usersStatus = document.getElementById("usersStatus");
+  if (usersStatus) usersStatus.textContent = "Loading users...";
+
+  const response = await fetch("/users");
+  const payload = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(payload.message || "Failed to load users.");
+  }
+
+  managedUsers = payload.users || [];
+  renderUsersTable(managedUsers);
+  if (usersStatus) usersStatus.textContent = "";
+};
+
+const handleSaveUser = async () => {
+  const usersStatus = document.getElementById("usersStatus");
+  const userModalStatus = document.getElementById("userModalStatus");
+  const id = document.getElementById("userId").value.trim();
+  const fullName = document.getElementById("userFullName").value.trim();
+  const username = document.getElementById("userUsername").value.trim();
+  const phone = document.getElementById("userPhone").value.trim();
+  const role = document.getElementById("userRole").value;
+  const branch = document.getElementById("userBranch").value;
+  const password = document.getElementById("userPassword").value;
+
+  if (fullName.length < 2 || username.length < 2) {
+    userModalStatus.textContent = "Full name and username must have at least 2 characters.";
+    return;
+  }
+
+  if (!role) {
+    userModalStatus.textContent = "Please select a role.";
+    return;
+  }
+
+  if (role !== "Director" && !branch) {
+    userModalStatus.textContent = "Please select a branch for non-director users.";
+    return;
+  }
+
+  if (!id && password.length < 6) {
+    userModalStatus.textContent = "Password must be at least 6 characters for new users.";
+    return;
+  }
+
+  if (id && password && password.length < 6) {
+    userModalStatus.textContent = "Updated password must be at least 6 characters.";
+    return;
+  }
+
+  const body = {
+    fullName,
+    username,
+    phone,
+    role,
+    branch,
+  };
+
+  if (password) {
+    body.password = password;
+  }
+
+  userModalStatus.textContent = id ? "Updating user..." : "Creating user...";
+
+  const response = await fetch(id ? `/users/${id}` : "/users", {
+    method: id ? "PUT" : "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    userModalStatus.textContent = result.message || "Failed to save user.";
+    return;
+  }
+
+  usersStatus.textContent = result.message || "User saved successfully.";
+  resetUserForm();
+  closeUserModal();
+  await loadUsers();
+};
+
+const handleEditUser = (id) => {
+  const target = managedUsers.find((user) => String(user._id) === String(id));
+  if (!target) return;
+
+  document.getElementById("userId").value = target._id || "";
+  document.getElementById("userFullName").value = target.fullName || "";
+  document.getElementById("userUsername").value = target.username || "";
+  document.getElementById("userPhone").value = target.phone || "";
+  document.getElementById("userRole").value = target.role || "";
+  document.getElementById("userBranch").value = target.branch || "";
+  document.getElementById("userPassword").value = "";
+  document.getElementById("userModalTitle").textContent = "Edit User";
+  document.getElementById("saveUserButton").textContent = "Update User";
+  document.getElementById("userModalStatus").textContent = "";
+  syncUserBranchState();
+  openUserModal();
+  setNavSection("users");
+};
+
+const handleDeleteUser = async (id) => {
+  const usersStatus = document.getElementById("usersStatus");
+  const target = managedUsers.find((user) => String(user._id) === String(id));
+  if (!target) return;
+
+  usersStatus.textContent = "Deleting user...";
+  const response = await fetch(`/users/${id}`, { method: "DELETE" });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    usersStatus.textContent = result.message || "Failed to delete user.";
+    return;
+  }
+
+  usersStatus.textContent = result.message || "User deleted successfully.";
+  await loadUsers();
+};
+
+const promptDeleteUser = (id) => {
+  const target = managedUsers.find((user) => String(user._id) === String(id));
+  if (!target) return;
+
+  pendingDeleteUserId = String(id);
+  const label = target.fullName || target.username || "this user";
+  const text = document.getElementById("deleteUserModalText");
+  if (text) {
+    text.textContent = `Delete user "${label}"? This action cannot be undone.`;
+  }
+  openDeleteUserModal();
+};
+
 const loadDirectorDashboard = async () => {
   const salesStatus = document.getElementById("salesStatus");
   const stockStatus = document.getElementById("stockStatus");
@@ -470,6 +693,7 @@ const loadDirectorDashboard = async () => {
     : { message: "Procurement records are currently unavailable.", records: [] };
 
   const displayName = user.fullName || user.username || "Director";
+  directorUserId = user._id || user.id || null;
   document.getElementById("profileName").textContent = displayName;
   document.getElementById("profileRole").textContent = (user.role || "Director").toUpperCase();
   document.getElementById("overviewGreeting").textContent = `Welcome, ${displayName}`;
@@ -516,6 +740,15 @@ const loadDirectorDashboard = async () => {
 
   if (salesStatus) salesStatus.textContent = "";
 
+  try {
+    await loadUsers();
+  } catch (error) {
+    const usersStatus = document.getElementById("usersStatus");
+    if (usersStatus) {
+      usersStatus.textContent = error.message;
+    }
+  }
+
   return allRows;
 };
 
@@ -556,10 +789,81 @@ document.addEventListener("DOMContentLoaded", async () => {
     document.getElementById("searchInput")?.addEventListener("input", () => {
       applySearchFilter(rows);
     });
+    document.getElementById("openAddUserModalButton")?.addEventListener("click", () => {
+      resetUserForm();
+      openUserModal();
+    });
+    document.getElementById("closeUserModalButton")?.addEventListener("click", () => {
+      closeUserModal();
+    });
+    document.getElementById("userRole")?.addEventListener("change", syncUserBranchState);
+    document.getElementById("saveUserButton")?.addEventListener("click", async () => {
+      try {
+        await handleSaveUser();
+      } catch (error) {
+        document.getElementById("usersStatus").textContent = error.message;
+      }
+    });
+    document.getElementById("cancelEditUserButton")?.addEventListener("click", () => {
+      resetUserForm();
+      closeUserModal();
+    });
+    document.getElementById("userModal")?.addEventListener("click", (event) => {
+      if (event.target.id === "userModal") {
+        closeUserModal();
+      }
+    });
+    document.getElementById("closeDeleteUserModalButton")?.addEventListener("click", () => {
+      closeDeleteUserModal();
+    });
+    document.getElementById("cancelDeleteUserButton")?.addEventListener("click", () => {
+      closeDeleteUserModal();
+    });
+    document.getElementById("confirmDeleteUserButton")?.addEventListener("click", async () => {
+      if (!pendingDeleteUserId) {
+        closeDeleteUserModal();
+        return;
+      }
+
+      const idToDelete = pendingDeleteUserId;
+      closeDeleteUserModal();
+      try {
+        await handleDeleteUser(idToDelete);
+      } catch (error) {
+        document.getElementById("usersStatus").textContent = error.message;
+      }
+    });
+    document.getElementById("deleteUserModal")?.addEventListener("click", (event) => {
+      if (event.target.id === "deleteUserModal") {
+        closeDeleteUserModal();
+      }
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        closeDeleteUserModal();
+      }
+    });
+    document.getElementById("usersTableBody")?.addEventListener("click", async (event) => {
+      const editButton = event.target.closest(".user-edit-btn");
+      const deleteButton = event.target.closest(".user-delete-btn");
+
+      if (editButton) {
+        handleEditUser(editButton.dataset.id);
+      }
+
+      if (deleteButton) {
+        promptDeleteUser(deleteButton.dataset.id);
+      }
+    });
+    syncUserBranchState();
   } catch (error) {
     const salesStatus = document.getElementById("salesStatus");
     if (salesStatus) {
       salesStatus.textContent = error.message;
+    }
+    const usersStatus = document.getElementById("usersStatus");
+    if (usersStatus) {
+      usersStatus.textContent = error.message;
     }
   }
 });

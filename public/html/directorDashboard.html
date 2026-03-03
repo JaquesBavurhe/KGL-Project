@@ -43,6 +43,10 @@
                     <span class="material-symbols-outlined">inventory_2</span>
                     <span class="nav-label">Stock Summary</span>
                 </button>
+                <button class="nav-item" data-target="users">
+                    <span class="material-symbols-outlined">group</span>
+                    <span class="nav-label">User Management</span>
+                </button>
             </nav>
 
             <div style="padding: 12px; border-top: 1px solid rgba(255,255,255,0.05); margin-top: auto;">
@@ -300,6 +304,127 @@
                             </table>
                         </div>
                         <p id="stockStatus" class="status"></p>
+                    </div>
+                </section>
+
+                <section id="users" class="view-section">
+                    <h3 class="section-title">User Management</h3>
+                    <div class="card">
+                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+                            <span class="card-title" style="margin-bottom: 0;">All Users</span>
+                            <button id="openAddUserModalButton" class="btn-primary" type="button">
+                                <span class="material-symbols-outlined" style="font-size: 18px; vertical-align: middle;">person_add</span>
+                                New User
+                            </button>
+                        </div>
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Username</th>
+                                        <th>Phone</th>
+                                        <th>Role</th>
+                                        <th>Branch</th>
+                                        <th>Created</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="usersTableBody"></tbody>
+                            </table>
+                        </div>
+                        <p id="usersStatus" class="status"></p>
+                    </div>
+
+                    <div id="userModal" class="modal-overlay">
+                        <div class="modal-panel">
+                            <div class="modal-header">
+                                <h4 id="userModalTitle">New User</h4>
+                                <button id="closeUserModalButton" class="icon-btn" type="button"
+                                    aria-label="Close add user modal">
+                                    <span class="material-symbols-outlined">close</span>
+                                </button>
+                            </div>
+                            <form id="userForm" class="form-grid">
+                                <input type="hidden" id="userId">
+                                <div class="input-group">
+                                    <label for="userFullName">Full Name</label>
+                                    <div class="input-wrapper modal-input-wrapper">
+                                        <span class="material-symbols-outlined input-icon">person</span>
+                                        <input id="userFullName" class="modal-input" type="text" minlength="2" required>
+                                    </div>
+                                </div>
+                                <div class="input-group">
+                                    <label for="userUsername">Username</label>
+                                    <div class="input-wrapper modal-input-wrapper">
+                                        <span class="material-symbols-outlined input-icon">alternate_email</span>
+                                        <input id="userUsername" class="modal-input" type="text" minlength="2" required>
+                                    </div>
+                                </div>
+                                <div class="input-group">
+                                    <label for="userPhone">Phone</label>
+                                    <div class="input-wrapper modal-input-wrapper">
+                                        <span class="material-symbols-outlined input-icon">call</span>
+                                        <input id="userPhone" class="modal-input" type="text" placeholder="+256..." required>
+                                    </div>
+                                </div>
+                                <div class="input-group">
+                                    <label for="userRole">Role</label>
+                                    <div class="input-wrapper modal-input-wrapper">
+                                        <span class="material-symbols-outlined input-icon">badge</span>
+                                        <select id="userRole" class="modal-input modal-select" required>
+                                            <option value="">Select role</option>
+                                            <option value="Director">Director</option>
+                                            <option value="Manager">Manager</option>
+                                            <option value="Sales Agent">Sales Agent</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="input-group">
+                                    <label for="userBranch">Branch</label>
+                                    <div class="input-wrapper modal-input-wrapper">
+                                        <span class="material-symbols-outlined input-icon">store</span>
+                                        <select id="userBranch" class="modal-input modal-select">
+                                            <option value="">Select branch</option>
+                                            <option value="Maganjo">Maganjo</option>
+                                            <option value="Matugga">Matugga</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="input-group">
+                                    <label for="userPassword">Password</label>
+                                    <div class="input-wrapper modal-input-wrapper">
+                                        <span class="material-symbols-outlined input-icon">lock</span>
+                                        <input id="userPassword" class="modal-input" type="password" minlength="6"
+                                            placeholder="Required for new user only">
+                                    </div>
+                                </div>
+                            </form>
+                            <div class="modal-actions">
+                                <button id="cancelEditUserButton" class="btn-secondary" type="button">Cancel</button>
+                                <button id="saveUserButton" class="btn-primary" type="button">Save User</button>
+                            </div>
+                            <p id="userModalStatus" class="status"></p>
+                        </div>
+                    </div>
+
+                    <div id="deleteUserModal" class="modal-overlay">
+                        <div class="modal-panel" style="width: min(520px, 100%);">
+                            <div class="modal-header">
+                                <h4>Confirm User Deletion</h4>
+                                <button id="closeDeleteUserModalButton" class="icon-btn" type="button"
+                                    aria-label="Close delete user modal">
+                                    <span class="material-symbols-outlined">close</span>
+                                </button>
+                            </div>
+                            <p id="deleteUserModalText" style="font-size: 14px; color: #475569;">
+                                Are you sure you want to delete this user?
+                            </p>
+                            <div class="modal-actions">
+                                <button id="cancelDeleteUserButton" class="btn-secondary" type="button">Cancel</button>
+                                <button id="confirmDeleteUserButton" class="btn-danger" type="button">Delete User</button>
+                            </div>
+                        </div>
                     </div>
                 </section>
             </main>

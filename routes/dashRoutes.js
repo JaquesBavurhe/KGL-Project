@@ -8,7 +8,7 @@ const {
   ensureAgent,
 } = require("../middleware/authMiddleware");
 
-//
+// Sends users to their role-specific dashboard.
 
 router.get(
   "/dashboard",
@@ -30,6 +30,7 @@ router.get(
   },
 );
 
+// Serves the director dashboard page.
 router.get(
   "/dashboard/director",
   authenticateToken({ redirectOnFail: true }),
@@ -39,6 +40,7 @@ router.get(
   },
 );
 
+// Serves the manager dashboard page.
 router.get(
   "/dashboard/manager",
   authenticateToken({ redirectOnFail: true }),
@@ -48,6 +50,7 @@ router.get(
   },
 );
 
+// Serves the sales agent dashboard page.
 router.get(
   "/dashboard/sales-agent",
   authenticateToken({ redirectOnFail: true }),

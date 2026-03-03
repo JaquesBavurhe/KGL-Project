@@ -13,6 +13,7 @@ const {router: authRoutes} = require('./routes/authRoutes');
 const {router: dashRoutes} = require('./routes/dashRoutes');
 const {router: salesRoutes} = require('./routes/salesRoutes');
 const {router: ProcurementRoutes} = require('./routes/ProcurementRoutes');
+const { registerSwagger } = require("./docs/swagger");
 
 //2. INITIALIZING EXPRESS APP
 const app = express();
@@ -46,6 +47,8 @@ mongoose.connection
 //serving static files
 app.use(express.static(path.join(__dirname, "public")));
 
+// API docs
+registerSwagger(app);
 
 //5. USING IMPORTED ROUTES
 
