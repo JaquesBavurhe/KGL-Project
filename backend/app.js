@@ -45,7 +45,7 @@ mongoose.connection
 
 
 //serving static files
-app.use(express.static(path.join(__dirname, "public")));
+app.use(express.static(path.join(__dirname, "../frontend/public")));
 
 // API docs
 registerSwagger(app);
@@ -71,3 +71,4 @@ app.listen(PORT, (err) => {
     console.log(`listening on port ${PORT}`);
   }
 });
+

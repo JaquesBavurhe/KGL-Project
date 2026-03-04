@@ -36,7 +36,7 @@ router.get(
   authenticateToken({ redirectOnFail: true }),
   ensureDirector,
   (req, res) => {
-    res.sendFile(path.join(__dirname, "../public/html/directorDashboard.html"));
+    res.sendFile(path.join(__dirname, "../../frontend/public/html/directorDashboard.html"));
   },
 );
 
@@ -46,7 +46,7 @@ router.get(
   authenticateToken({ redirectOnFail: true }),
   ensureManager,
   (req, res) => {
-    res.sendFile(path.join(__dirname, "../public/html/managerDashboard.html"));
+    res.sendFile(path.join(__dirname, "../../frontend/public/html/managerDashboard.html"));
   },
 );
 
@@ -57,9 +57,10 @@ router.get(
   ensureAgent,
   (req, res) => {
     res.sendFile(
-      path.join(__dirname, "../public/html/salesAgentDashboard.html"),
+      path.join(__dirname, "../../frontend/public/html/salesAgentDashboard.html"),
     );
   },
 );
 
 module.exports = { router };
+

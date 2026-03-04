@@ -30,7 +30,7 @@ const authCookieOptions = {
 
 // Serves the login page.
 router.get("/login", (req, res) => {
-  res.sendFile(path.join(__dirname, "../public/html/login.html"));
+  res.sendFile(path.join(__dirname, "../../frontend/public/html/login.html"));
 });
 
 // Authenticates user credentials and returns a JWT + safe user profile.
@@ -191,3 +191,4 @@ router.get("/logout", (req, res) => {
 });
 
 module.exports = { router };
+
