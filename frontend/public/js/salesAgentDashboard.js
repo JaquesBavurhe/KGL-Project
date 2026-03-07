@@ -1,5 +1,7 @@
 const formatNumber = (value) => new Intl.NumberFormat("en-UG").format(value || 0);
+const apiFetch = (url, options = {}) => fetch(url, { credentials: "include", ...options });
 
+// Normalizes `datetime-local` input values before sending to API.
 const toIsoFromDateTimeLocal = (value) => {
   if (!value) return undefined;
   const date = new Date(value);
@@ -18,6 +20,7 @@ let allRowsCache = [];
 let activeSaleModalId = null;
 let authenticatedUser = null;
 
+// Modal state helpers for sales-agent quick-entry forms.
 const openSaleModal = (modalId) => {
   activeSaleModalId = modalId;
   document.getElementById(modalId)?.classList.add("open");
@@ -30,6 +33,7 @@ const closeSaleModal = (modalId) => {
   }
 };
 
+// Syncs sales-agent header labels with the latest authenticated user details.
 const applyProfileHeader = (user) => {
   if (!user) return;
   const displayName = user.fullName || user.username || "Sales Agent";
@@ -49,6 +53,7 @@ const applyProfileHeader = (user) => {
   }
 };
 
+// Controls sales-agent profile dropdown + manage-profile modal behavior.
 const setupProfileMenu = () => {
   const menuToggle = document.getElementById("profileMenuToggle");
   const menu = document.getElementById("profileMenu");
@@ -153,7 +158,7 @@ const setupProfileMenu = () => {
 
     if (profileModalStatus) profileModalStatus.textContent = "Saving profile changes...";
 
-    const response = await fetch("/auth/profile", {
+    const response = await apiFetch("/auth/profile", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -176,6 +181,7 @@ const setupProfileMenu = () => {
   });
 };
 
+// Auto-price support and table rendering helpers.
 const resetCashSaleForm = () => {
   const form = document.getElementById("cashSaleForm");
   form?.reset();
@@ -195,7 +201,7 @@ const fetchSaleQuote = async (produceName, tonnageKg) => {
     produceName: String(produceName || "").trim(),
     tonnageKg: String(tonnageKg || ""),
   });
-  const res = await fetch(`/sales/price-quote?${params.toString()}`);
+  const res = await apiFetch(`/sales/price-quote?${params.toString()}`);
   const body = await res.json().catch(() => ({}));
   if (!res.ok) {
     throw new Error(body.message || "Failed to fetch price quote.");
@@ -322,8 +328,8 @@ const applySearchFilter = () => {
   renderRows(filteredRows);
 };
 
+// Loads sales-agent data and updates overview + records tables.
 const loadDashboard = async () => {
-  const userContext = document.getElementById("userContext");
   const recordsStatus = document.getElementById("recordsStatus");
 
   if (recordsStatus) {
@@ -331,8 +337,8 @@ const loadDashboard = async () => {
   }
 
   const [meRes, salesRes] = await Promise.all([
-    fetch("/auth/me"),
-    fetch("/sales/records?type=all"),
+    apiFetch("/auth/me"),
+    apiFetch("/sales/records?type=all"),
   ]);
 
   if (!meRes.ok) {
@@ -395,6 +401,7 @@ const loadDashboard = async () => {
   }
 };
 
+// Form submit handlers for cash/credit sales.
 const handleCashSubmit = async (event) => {
   event.preventDefault();
   const status = document.getElementById("cashStatus");
@@ -409,7 +416,7 @@ const handleCashSubmit = async (event) => {
     date: toIsoFromDateTimeLocal(form.date.value),
   };
 
-  const res = await fetch("/sales/cash", {
+  const res = await apiFetch("/sales/cash", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
@@ -448,7 +455,7 @@ const handleCreditSubmit = async (event) => {
     dueDate: form.dueDate.value,
   };
 
-  const res = await fetch("/sales/credit", {
+  const res = await apiFetch("/sales/credit", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
@@ -470,6 +477,7 @@ const handleCreditSubmit = async (event) => {
   setNavSection("records");
 };
 
+// Entry point: register UI events and fetch initial dashboard data.
 document.addEventListener("DOMContentLoaded", async () => {
   const navItems = document.querySelectorAll(".nav-item[data-target]");
 

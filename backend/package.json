@@ -5,7 +5,7 @@
   "main": "app.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "nodemon app.js"
+    "start": "node app.js"
   },
   "repository": {
     "type": "git",
@@ -37,5 +37,8 @@
     "prettier": "^3.7.4",
     "pug": "^3.0.3",
     "swagger-ui-express": "^5.0.1"
+  },
+  "dependencies": {
+    "cors": "^2.8.6"
   }
 }

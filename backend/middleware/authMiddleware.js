@@ -1,5 +1,6 @@
 const jwt = require("jsonwebtoken");
 
+// Reads JWT from either cookie auth (`token`) or Authorization Bearer header.
 const getTokenFromRequest = (req) => {
   const authHeader = req.headers.authorization || "";
   const hasBearer = authHeader.startsWith("Bearer ");
@@ -8,6 +9,8 @@ const getTokenFromRequest = (req) => {
   return req.cookies?.token || bearerToken;
 };
 
+// Verifies JWT and attaches decoded payload to `req.user`.
+// Optionally redirects to `/login` for browser routes.
 const authenticateToken =
   ({ redirectOnFail = false } = {}) =>
   (req, res, next) => {
@@ -28,10 +31,12 @@ const authenticateToken =
     }
   };
 
-
-//
-
+// Generic role gate used by role-specific guards below.
 const requireRole = (allowedRoles) => (req, res, next) => {
+  if (!req.user) {
+    return res.status(401).json({ message: "Authentication token is missing" });
+  }
+
   if (!allowedRoles.includes(req.user.role)) {
     return res.status(403).send("Access denied");
   }
@@ -39,6 +44,7 @@ const requireRole = (allowedRoles) => (req, res, next) => {
   return next();
 };
 
+// Common role aliases used by routes.
 const ensureDirector = requireRole(["Director"]);
 const ensureManager = requireRole(["Manager"]);
 const ensureAgent = requireRole(["Sales Agent"]);

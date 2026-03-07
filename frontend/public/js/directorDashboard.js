@@ -1,4 +1,5 @@
 const formatNumber = (value) => new Intl.NumberFormat("en-UG").format(value || 0);
+const apiFetch = (url, options = {}) => fetch(url, { credentials: "include", ...options });
 let directorUserId = null;
 let managedUsers = [];
 let pendingDeleteUserId = null;
@@ -6,6 +7,7 @@ let authenticatedUser = null;
 let notificationsCache = [];
 let unreadNotifications = 0;
 
+// Shared helpers for safe date parsing and HTML escaping.
 const toDateSafe = (value) => {
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? null : date;
@@ -32,6 +34,7 @@ const setNavSection = (targetId) => {
   });
 };
 
+// Aggregation/render helpers for dashboard overview cards and tables.
 const buildSalesRows = (cashSales, creditSales) => {
   const cashRows = (cashSales || []).map((sale) => ({
     id: sale._id,
@@ -231,7 +234,6 @@ const renderCreditBreakdown = (creditSales) => {
     })
     .join("");
 
-  return { issued, unpaid, overdue };
 };
 
 const renderProcurementSummary = (procurementSummary, procurementRecords) => {
@@ -468,6 +470,7 @@ const closeDeleteUserModal = () => {
   pendingDeleteUserId = null;
 };
 
+// Syncs top-bar/profile hero labels with the latest authenticated user info.
 const applyProfileHeader = (user) => {
   if (!user) return;
   const displayName = user.fullName || user.username || "User";
@@ -487,6 +490,7 @@ const applyProfileHeader = (user) => {
   }
 };
 
+// Renders the director notification dropdown and unread badge state.
 const renderDirectorNotifications = () => {
   const badge = document.getElementById("notificationBadge");
   const list = document.getElementById("notificationList");
@@ -515,8 +519,9 @@ const renderDirectorNotifications = () => {
     .join("");
 };
 
+// Fetches the latest profile-change notifications for the current director.
 const loadDirectorNotifications = async () => {
-  const response = await fetch("/notifications/director?limit=10");
+  const response = await apiFetch("/notifications/director?limit=10");
   const payload = await response.json().catch(() => ({}));
 
   if (!response.ok) {
@@ -528,8 +533,9 @@ const loadDirectorNotifications = async () => {
   renderDirectorNotifications();
 };
 
+// Clears unread count once the director opens the notification panel.
 const markDirectorNotificationsAsRead = async () => {
-  const response = await fetch("/notifications/director/read-all", {
+  const response = await apiFetch("/notifications/director/read-all", {
     method: "POST",
   });
   if (!response.ok) return;
@@ -539,6 +545,7 @@ const markDirectorNotificationsAsRead = async () => {
   renderDirectorNotifications();
 };
 
+// Handles top-right profile dropdown + profile update modal interactions.
 const setupProfileMenu = ({ onProfileUpdated } = {}) => {
   const menuToggle = document.getElementById("profileMenuToggle");
   const menu = document.getElementById("profileMenu");
@@ -557,7 +564,6 @@ const setupProfileMenu = ({ onProfileUpdated } = {}) => {
   if (!menuToggle || !menu || !profileModal || !saveProfileButton) return;
 
   const closeMenu = () => menu.classList.remove("open");
-  const openMenu = () => menu.classList.add("open");
   const toggleMenu = () => menu.classList.toggle("open");
 
   const closeProfileModal = () => {
@@ -644,7 +650,7 @@ const setupProfileMenu = ({ onProfileUpdated } = {}) => {
 
     if (profileModalStatus) profileModalStatus.textContent = "Saving profile changes...";
 
-    const response = await fetch("/auth/profile", {
+    const response = await apiFetch("/auth/profile", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -711,7 +717,7 @@ const loadUsers = async () => {
   const usersStatus = document.getElementById("usersStatus");
   if (usersStatus) usersStatus.textContent = "Loading users...";
 
-  const response = await fetch("/users");
+  const response = await apiFetch("/users");
   const payload = await response.json().catch(() => ({}));
 
   if (!response.ok) {
@@ -773,7 +779,7 @@ const handleSaveUser = async () => {
 
   userModalStatus.textContent = id ? "Updating user..." : "Creating user...";
 
-  const response = await fetch(id ? `/users/${id}` : "/users", {
+  const response = await apiFetch(id ? `/users/${id}` : "/users", {
     method: id ? "PUT" : "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
@@ -812,11 +818,10 @@ const handleEditUser = (id) => {
 
 const handleDeleteUser = async (id) => {
   const usersStatus = document.getElementById("usersStatus");
-  const target = managedUsers.find((user) => String(user._id) === String(id));
-  if (!target) return;
+  if (!managedUsers.some((user) => String(user._id) === String(id))) return;
 
   usersStatus.textContent = "Deleting user...";
-  const response = await fetch(`/users/${id}`, { method: "DELETE" });
+  const response = await apiFetch(`/users/${id}`, { method: "DELETE" });
   const result = await response.json().catch(() => ({}));
   if (!response.ok) {
     usersStatus.textContent = result.message || "Failed to delete user.";
@@ -857,13 +862,13 @@ const loadDirectorDashboard = async () => {
     procurementRecordsRes,
     notificationsRes,
   ] = await Promise.all([
-    fetch("/auth/me"),
-    fetch("/sales/summary"),
-    fetch("/sales/records?type=all"),
-    fetch("/stock/summary"),
-    fetch("/procurement/summary"),
-    fetch("/procurement/records"),
-    fetch("/notifications/director?limit=10"),
+    apiFetch("/auth/me"),
+    apiFetch("/sales/summary"),
+    apiFetch("/sales/records?type=all"),
+    apiFetch("/stock/summary"),
+    apiFetch("/procurement/summary"),
+    apiFetch("/procurement/records"),
+    apiFetch("/notifications/director?limit=10"),
   ]);
 
   if (!meRes.ok) {
@@ -981,6 +986,7 @@ const applySearchFilter = (rows) => {
   renderSalesByBranch(filtered);
 };
 
+// Entry point: wire UI events then load dashboard data.
 document.addEventListener("DOMContentLoaded", async () => {
   const navItems = document.querySelectorAll(".nav-item[data-target]");
   navItems.forEach((item) => {

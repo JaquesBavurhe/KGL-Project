@@ -1,6 +1,8 @@
 document.addEventListener("DOMContentLoaded", () => {
   const errorTimers = new Map();
+  const apiFetch = (url, options = {}) => fetch(url, { credentials: "include", ...options });
 
+  // Toast UI helpers used by login/signup feedback.
   const ensureToastStyles = () => {
     if (document.getElementById("toastStyles")) return;
 
@@ -69,6 +71,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }, 3000);
   };
 
+  // Field-level validation message helpers.
   const ensureFieldErrorStyles = () => {
     if (document.getElementById("fieldErrorStyles")) return;
 
@@ -167,6 +170,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // Ensure error-message spacing/animation styles are present on initial page render.
   ensureFieldErrorStyles();
 
+  // Optional signup form logic (kept for pages that still mount signup form controls).
   const signupForm = document.getElementById("signupForm");
 
   const roleSelect = document.getElementById("role");
@@ -254,7 +258,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       try {
-        const response = await fetch("/signup", {
+        const response = await apiFetch("/signup", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -288,12 +292,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const loginForm = document.getElementById("loginForm");
 
+  // Login flow with first-login password reset modal.
   if (loginForm) {
     bindInputToClearError("username", "usernameError");
     bindInputToClearError("password", "passwordError");
     bindInputToClearError("firstLoginCurrentPassword", "firstLoginCurrentPasswordError");
     bindInputToClearError("firstLoginNewPassword", "firstLoginNewPasswordError");
 
+    // First-login flow: optional prompt + forced credential update form in modal.
     const firstLoginModal = document.getElementById("firstLoginModal");
     const firstLoginPromptStep = document.getElementById("firstLoginPromptStep");
     const firstLoginFormStep = document.getElementById("firstLoginFormStep");
@@ -363,7 +369,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       try {
-        const response = await fetch(`/login`, {
+        const response = await apiFetch(`/login`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ username, password }),
@@ -447,7 +453,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         try {
-          const response = await fetch("/auth/reset-first-password", {
+          const response = await apiFetch("/auth/reset-first-password", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ currentPassword, newPassword }),
@@ -483,6 +489,7 @@ document.addEventListener("DOMContentLoaded", () => {
   bindPasswordToggle("toggleFirstLoginCurrentPassword", "firstLoginCurrentPassword");
   bindPasswordToggle("toggleFirstLoginNewPassword", "firstLoginNewPassword");
 
+  // Generic logout button fallback for pages that include this script.
   const logoutButton = document.getElementById("logoutButton");
   if (logoutButton) {
     logoutButton.addEventListener("click", () => {

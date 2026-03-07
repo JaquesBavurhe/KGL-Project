@@ -22,13 +22,15 @@ const buildToken = (user) =>
   );
 
 // Shared cookie settings for storing the auth token in the browser.
+const useCrossSiteCookies = process.env.CROSS_SITE_COOKIES === "true";
 const authCookieOptions = {
   httpOnly: true,
-  sameSite: "lax",
-  secure: process.env.NODE_ENV === "production", //
+  sameSite: useCrossSiteCookies ? "none" : "lax",
+  secure: useCrossSiteCookies || process.env.NODE_ENV === "production", //
   maxAge: 24 * 60 * 60 * 1000,
 };
 
+// Creates one short notification per director when a non-director updates profile details.
 const createDirectorProfileChangeNotifications = async ({ actorUser, changedFields }) => {
   if (!actorUser || !Array.isArray(changedFields) || !changedFields.length) return;
   if (actorUser.role === "Director") return;
@@ -213,6 +215,7 @@ router.put("/auth/profile", authenticateToken(), async (req, res) => {
   try {
     const { fullName, username, currentPassword, newPassword } = req.body;
     const user = await User.findById(req.user.id);
+    // Tracks exactly which profile fields changed so the director notification stays concise.
     const changedFields = [];
 
     if (!user) {
@@ -266,6 +269,7 @@ router.put("/auth/profile", authenticateToken(), async (req, res) => {
     }
 
     await user.save();
+    // Notify directors after the profile is successfully persisted.
     await createDirectorProfileChangeNotifications({
       actorUser: user,
       changedFields: [...new Set(changedFields)],
@@ -385,4 +389,3 @@ router.get("/logout", (req, res) => {
 });
 
 module.exports = { router };
-

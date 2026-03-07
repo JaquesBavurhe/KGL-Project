@@ -1,5 +1,7 @@
 const formatNumber = (value) => new Intl.NumberFormat("en-UG").format(value || 0);
+const apiFetch = (url, options = {}) => fetch(url, { credentials: "include", ...options });
 
+// Normalizes `datetime-local` input values before sending to API.
 const toIsoFromDateTimeLocal = (value) => {
   if (!value) return undefined;
   const date = new Date(value);
@@ -22,6 +24,7 @@ let editingProcurementId = null;
 let pendingDeleteProcurementId = null;
 let authenticatedUser = null;
 
+// Modal state helpers used across manager forms.
 const openManagerModal = (modalId) => {
   activeManagerModalId = modalId;
   document.getElementById(modalId)?.classList.add("open");
@@ -79,6 +82,7 @@ const closeDeleteProcurementModal = () => {
   pendingDeleteProcurementId = null;
 };
 
+// Syncs manager header labels with the latest authenticated user details.
 const applyProfileHeader = (user) => {
   if (!user) return;
   const displayName = user.fullName || user.username || "Manager";
@@ -99,6 +103,7 @@ const applyProfileHeader = (user) => {
   }
 };
 
+// Controls manager profile dropdown + manage-profile modal behavior.
 const setupProfileMenu = () => {
   const menuToggle = document.getElementById("profileMenuToggle");
   const menu = document.getElementById("profileMenu");
@@ -203,7 +208,7 @@ const setupProfileMenu = () => {
 
     if (profileModalStatus) profileModalStatus.textContent = "Saving profile changes...";
 
-    const response = await fetch("/auth/profile", {
+    const response = await apiFetch("/auth/profile", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -226,12 +231,13 @@ const setupProfileMenu = () => {
   });
 };
 
+// Sales/procurement dashboard rendering and filtering helpers.
 const fetchSaleQuote = async (produceName, tonnageKg) => {
   const params = new URLSearchParams({
     produceName: String(produceName || "").trim(),
     tonnageKg: String(tonnageKg || ""),
   });
-  const res = await fetch(`/sales/price-quote?${params.toString()}`);
+  const res = await apiFetch(`/sales/price-quote?${params.toString()}`);
   const body = await res.json().catch(() => ({}));
   if (!res.ok) {
     throw new Error(body.message || "Failed to fetch price quote.");
@@ -416,15 +422,16 @@ const renderNotificationPanel = () => {
     .join("");
 };
 
+// Loads all manager dashboard resources and hydrates UI.
 const loadManagerDashboard = async () => {
   const [meRes, salesRes, procurementSummaryRes, procurementRecordsRes, stockRes, alertsRes] =
     await Promise.all([
-      fetch("/auth/me"),
-      fetch("/sales/records?type=all"),
-      fetch("/procurement/summary"),
-      fetch("/procurement/records"),
-      fetch("/stock/summary"),
-      fetch("/stock/alerts"),
+      apiFetch("/auth/me"),
+      apiFetch("/sales/records?type=all"),
+      apiFetch("/procurement/summary"),
+      apiFetch("/procurement/records"),
+      apiFetch("/stock/summary"),
+      apiFetch("/stock/alerts"),
     ]);
 
   if (!meRes.ok) {
@@ -549,6 +556,7 @@ const loadManagerDashboard = async () => {
   document.getElementById("recordsStatus").textContent = "";
 };
 
+// Form submit handlers for creating/updating records.
 const handleCashSubmit = async (event) => {
   event.preventDefault();
   const form = event.currentTarget;
@@ -563,7 +571,7 @@ const handleCashSubmit = async (event) => {
     date: toIsoFromDateTimeLocal(form.date.value),
   };
 
-  const res = await fetch("/sales/cash", {
+  const res = await apiFetch("/sales/cash", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
@@ -601,7 +609,7 @@ const handleCreditSubmit = async (event) => {
     dueDate: form.dueDate.value,
   };
 
-  const res = await fetch("/sales/credit", {
+  const res = await apiFetch("/sales/credit", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
@@ -641,7 +649,7 @@ const handleProcurementSubmit = async (event) => {
     date: toIsoFromDateTimeLocal(form.date.value),
   };
 
-  const res = await fetch(isEditing ? `/procurement/${editingProcurementId}` : "/procurement", {
+  const res = await apiFetch(isEditing ? `/procurement/${editingProcurementId}` : "/procurement", {
     method: isEditing ? "PUT" : "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
@@ -708,7 +716,7 @@ const handleDeleteProcurement = async (id) => {
   const recordsStatus = document.getElementById("recordsStatus");
   if (recordsStatus) recordsStatus.textContent = "Deleting procurement...";
 
-  const response = await fetch(`/procurement/${id}`, { method: "DELETE" });
+  const response = await apiFetch(`/procurement/${id}`, { method: "DELETE" });
   const result = await response.json().catch(() => ({}));
   if (!response.ok) {
     if (recordsStatus) recordsStatus.textContent = result.message || "Failed to delete procurement.";
@@ -720,6 +728,7 @@ const handleDeleteProcurement = async (id) => {
   if (latestStatus) latestStatus.textContent = result.message || "Procurement deleted successfully.";
 };
 
+// Entry point: register event listeners and fetch initial data.
 document.addEventListener("DOMContentLoaded", async () => {
   document.querySelectorAll(".nav-item[data-target]").forEach((item) => {
     item.addEventListener("click", () => {

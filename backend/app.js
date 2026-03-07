@@ -4,6 +4,7 @@ const path = require("path");
 const mongoose = require("mongoose");
 const moment = require("moment");
 const cookieParser = require("cookie-parser");
+const cors = require("cors");
 
 require("dotenv").config();
 
@@ -21,6 +22,16 @@ const PORT = process.env.PORT || 3000
 
 //3. CONFIGURATIONS
 const URI = process.env.MONGODB_URI;
+const allowedOrigins = (process.env.CORS_ALLOWED_ORIGINS || "")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+const isOriginAllowed = (origin) => {
+  if (!origin) return true;
+  if (!allowedOrigins.length) return true;
+  return allowedOrigins.includes(origin);
+};
 
 app.locals.moment = moment;
 mongoose.connect(URI);
@@ -39,6 +50,17 @@ mongoose.connection
 
 
 //4.MIDDLEWARE
+app.use(cors({
+  origin(origin, callback) {
+    if (isOriginAllowed(origin)) {
+      return callback(null, true);
+    }
+    return callback(new Error("CORS origin denied"));
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Origin", "X-Requested-With", "Content-Type", "Accept", "Authorization"],
+}));
 
 
 //serving static files
