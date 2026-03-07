@@ -38,9 +38,6 @@ mongoose.connection
   app.use(cookieParser());
 
 
-// app.set('view engine', 'pug'); // setting pug as the view engine
-// app.set('views', path.join(__dirname, 'views')); // specifying a folder containing front-end files
-
 //4.MIDDLEWARE
 
 
@@ -60,7 +57,14 @@ app.use('/', ProcurementRoutes);
 
 //for non-existing routes
 app.use((req, res) => {
-  res.status(404); //always above the server
+  const wantsHtml = req.accepts("html");
+  if (wantsHtml) {
+    return res
+      .status(404)
+      .sendFile(path.join(__dirname, "../frontend/public/html/404.html"));
+  }
+
+  return res.status(404).json({ error: "Route not found" });
 });
 
 //6. Starting the server

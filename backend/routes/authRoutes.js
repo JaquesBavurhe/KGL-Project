@@ -5,6 +5,7 @@ const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 
 const User = require("../models/User");
+const Notification = require("../models/Notification");
 const { authenticateToken, ensureDirector } = require("../middleware/authMiddleware");
 
 // Creates a signed JWT payload used for authenticated requests.
@@ -26,6 +27,26 @@ const authCookieOptions = {
   sameSite: "lax",
   secure: process.env.NODE_ENV === "production", //
   maxAge: 24 * 60 * 60 * 1000,
+};
+
+const createDirectorProfileChangeNotifications = async ({ actorUser, changedFields }) => {
+  if (!actorUser || !Array.isArray(changedFields) || !changedFields.length) return;
+  if (actorUser.role === "Director") return;
+
+  const directors = await User.find({ role: "Director" }).select("_id");
+  if (!directors.length) return;
+
+  const fieldLabel = changedFields.join(", ");
+  const actorLabel = actorUser.fullName || actorUser.username || "A user";
+  const message = `${actorLabel} updated their profile (${fieldLabel}).`;
+
+  const documents = directors.map((director) => ({
+    recipient: director._id,
+    actor: actorUser._id,
+    message,
+  }));
+
+  await Notification.insertMany(documents);
 };
 
 // Serves the login page.
@@ -52,6 +73,7 @@ router.post("/login", async (req, res) => {
             fullName: user.fullName,
             role: user.role,
             branch: user.branch,
+            mustResetPassword: Boolean(user.mustResetPassword),
           },
         });
       } else {
@@ -94,6 +116,7 @@ router.post("/users", authenticateToken(), ensureDirector, async (req, res) => {
     const payload = {
       ...body,
       branch: body.role === "Director" ? null : body.branch,
+      mustResetPassword: true,
     };
 
     const newUser = new User(payload);
@@ -140,6 +163,7 @@ router.put("/users/:id", authenticateToken(), ensureDirector, async (req, res) =
 
     if (password) {
       existingUser.password = password;
+      existingUser.mustResetPassword = true;
     }
 
     await existingUser.save();
@@ -179,6 +203,176 @@ router.get("/auth/me", authenticateToken(), async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
     return res.status(200).json({ user });
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+});
+
+// Updates the currently authenticated user's profile details.
+router.put("/auth/profile", authenticateToken(), async (req, res) => {
+  try {
+    const { fullName, username, currentPassword, newPassword } = req.body;
+    const user = await User.findById(req.user.id);
+    const changedFields = [];
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    if (fullName !== undefined) {
+      const trimmedFullName = String(fullName).trim();
+      if (trimmedFullName.length < 2) {
+        return res.status(400).json({ message: "Full name must be at least 2 characters." });
+      }
+      if (trimmedFullName !== user.fullName) {
+        changedFields.push("full name");
+      }
+      user.fullName = trimmedFullName;
+    }
+
+    if (username !== undefined) {
+      const trimmedUsername = String(username).trim();
+      if (trimmedUsername.length < 2) {
+        return res.status(400).json({ message: "Username must be at least 2 characters." });
+      }
+      if (trimmedUsername !== user.username) {
+        changedFields.push("username");
+      }
+      user.username = trimmedUsername;
+    }
+
+    if (newPassword !== undefined && newPassword !== "") {
+      if (!currentPassword) {
+        return res.status(400).json({ message: "Current password is required to set a new password." });
+      }
+
+      if (String(newPassword).length < 6) {
+        return res.status(400).json({ message: "New password must be at least 6 characters." });
+      }
+
+      const currentPasswordMatch = await bcrypt.compare(currentPassword, user.password);
+      if (!currentPasswordMatch) {
+        return res.status(401).json({ message: "Current password is incorrect." });
+      }
+
+      const isSamePassword = await bcrypt.compare(newPassword, user.password);
+      if (isSamePassword) {
+        return res.status(400).json({ message: "New password must be different from current password." });
+      }
+
+      user.password = String(newPassword);
+      user.mustResetPassword = false;
+      changedFields.push("password");
+    }
+
+    await user.save();
+    await createDirectorProfileChangeNotifications({
+      actorUser: user,
+      changedFields: [...new Set(changedFields)],
+    });
+
+    const token = buildToken(user);
+    res.cookie("token", token, authCookieOptions);
+
+    return res.status(200).json({
+      message: "Profile updated successfully.",
+      user: {
+        id: user._id,
+        username: user.username,
+        fullName: user.fullName,
+        role: user.role,
+        branch: user.branch,
+        mustResetPassword: Boolean(user.mustResetPassword),
+      },
+    });
+  } catch (error) {
+    if (error.code === 11000) {
+      return res.status(400).json({ message: "Username is already taken." });
+    }
+    return res.status(500).json({ message: error.message });
+  }
+});
+
+// Returns recent notifications for the currently authenticated director.
+router.get("/notifications/director", authenticateToken(), ensureDirector, async (req, res) => {
+  try {
+    const limitRaw = Number(req.query.limit);
+    const limit = Number.isFinite(limitRaw) ? Math.min(Math.max(limitRaw, 1), 30) : 10;
+
+    const [notifications, unreadCount] = await Promise.all([
+      Notification.find({ recipient: req.user.id })
+        .sort({ createdAt: -1 })
+        .limit(limit)
+        .select("message createdAt isRead"),
+      Notification.countDocuments({ recipient: req.user.id, isRead: false }),
+    ]);
+
+    return res.status(200).json({ notifications, unreadCount });
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+});
+
+// Marks all director notifications as read for the current user.
+router.post("/notifications/director/read-all", authenticateToken(), ensureDirector, async (req, res) => {
+  try {
+    await Notification.updateMany(
+      { recipient: req.user.id, isRead: false },
+      { $set: { isRead: true } },
+    );
+
+    return res.status(200).json({ message: "Notifications marked as read." });
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+});
+
+// Allows logged-in users to change their first-login temporary password.
+router.post("/auth/reset-first-password", authenticateToken(), async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ message: "Current password and new password are required." });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ message: "New password must be at least 6 characters." });
+    }
+
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const currentPasswordMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!currentPasswordMatch) {
+      return res.status(401).json({ message: "Current password is incorrect." });
+    }
+
+    const isSamePassword = await bcrypt.compare(newPassword, user.password);
+    if (isSamePassword) {
+      return res.status(400).json({ message: "New password must be different from current password." });
+    }
+
+    user.password = newPassword;
+    user.mustResetPassword = false;
+    await user.save();
+
+    const token = buildToken(user);
+    res.cookie("token", token, authCookieOptions);
+
+    return res.status(200).json({
+      message: "Password updated successfully.",
+      user: {
+        id: user._id,
+        username: user.username,
+        fullName: user.fullName,
+        role: user.role,
+        branch: user.branch,
+        mustResetPassword: Boolean(user.mustResetPassword),
+      },
+    });
   } catch (error) {
     return res.status(500).json({ message: error.message });
   }

@@ -16,6 +16,7 @@ const escapeHtml = (value) =>
 
 let allRowsCache = [];
 let activeSaleModalId = null;
+let authenticatedUser = null;
 
 const openSaleModal = (modalId) => {
   activeSaleModalId = modalId;
@@ -27,6 +28,152 @@ const closeSaleModal = (modalId) => {
   if (activeSaleModalId === modalId) {
     activeSaleModalId = null;
   }
+};
+
+const applyProfileHeader = (user) => {
+  if (!user) return;
+  const displayName = user.fullName || user.username || "Sales Agent";
+  const role = user.role || "Sales Agent";
+  const branch = user.branch || "N/A";
+
+  const profileName = document.getElementById("profileName");
+  const profileMeta = document.getElementById("profileMeta");
+  const overviewGreeting = document.getElementById("overviewGreeting");
+  const userContext = document.getElementById("userContext");
+
+  if (profileName) profileName.textContent = displayName;
+  if (profileMeta) profileMeta.textContent = `${role} - ${branch}`;
+  if (overviewGreeting) overviewGreeting.textContent = `Good day, ${displayName}`;
+  if (userContext) {
+    userContext.textContent = `${displayName} (${role}) - Branch: ${branch}. Record and monitor daily sales from this dashboard.`;
+  }
+};
+
+const setupProfileMenu = () => {
+  const menuToggle = document.getElementById("profileMenuToggle");
+  const menu = document.getElementById("profileMenu");
+  const manageProfileButton = document.getElementById("manageProfileButton");
+  const logoutFromMenuButton = document.getElementById("logoutFromMenuButton");
+  const profileModal = document.getElementById("profileModal");
+  const closeProfileModalButton = document.getElementById("closeProfileModalButton");
+  const cancelProfileModalButton = document.getElementById("cancelProfileModalButton");
+  const saveProfileButton = document.getElementById("saveProfileButton");
+  const profileModalStatus = document.getElementById("profileModalStatus");
+  const profileFullNameInput = document.getElementById("profileFullNameInput");
+  const profileUsernameInput = document.getElementById("profileUsernameInput");
+  const profileCurrentPasswordInput = document.getElementById("profileCurrentPasswordInput");
+  const profileNewPasswordInput = document.getElementById("profileNewPasswordInput");
+
+  if (!menuToggle || !menu || !profileModal || !saveProfileButton) return;
+
+  const closeMenu = () => menu.classList.remove("open");
+  const toggleMenu = () => menu.classList.toggle("open");
+
+  const closeProfileModal = () => {
+    profileModal.classList.remove("open");
+    if (profileModalStatus) profileModalStatus.textContent = "";
+    if (profileCurrentPasswordInput) profileCurrentPasswordInput.value = "";
+    if (profileNewPasswordInput) profileNewPasswordInput.value = "";
+  };
+
+  const openProfileModal = () => {
+    if (profileFullNameInput) profileFullNameInput.value = authenticatedUser?.fullName || "";
+    if (profileUsernameInput) profileUsernameInput.value = authenticatedUser?.username || "";
+    if (profileCurrentPasswordInput) profileCurrentPasswordInput.value = "";
+    if (profileNewPasswordInput) profileNewPasswordInput.value = "";
+    if (profileModalStatus) profileModalStatus.textContent = "";
+    profileModal.classList.add("open");
+  };
+
+  menuToggle.addEventListener("click", (event) => {
+    event.stopPropagation();
+    toggleMenu();
+  });
+
+  manageProfileButton?.addEventListener("click", () => {
+    closeMenu();
+    openProfileModal();
+  });
+
+  logoutFromMenuButton?.addEventListener("click", () => {
+    window.location.href = "/logout";
+  });
+
+  closeProfileModalButton?.addEventListener("click", closeProfileModal);
+  cancelProfileModalButton?.addEventListener("click", closeProfileModal);
+
+  profileModal.addEventListener("click", (event) => {
+    if (event.target.id === "profileModal") {
+      closeProfileModal();
+    }
+  });
+
+  document.addEventListener("click", (event) => {
+    if (!menu.contains(event.target) && !menuToggle.contains(event.target)) {
+      closeMenu();
+    }
+  });
+
+  document.querySelectorAll(".password-toggle-btn[data-target]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const targetId = button.getAttribute("data-target");
+      const input = targetId ? document.getElementById(targetId) : null;
+      const icon = button.querySelector(".material-symbols-outlined");
+      if (!input || !icon) return;
+
+      const isHidden = input.type === "password";
+      input.type = isHidden ? "text" : "password";
+      icon.textContent = isHidden ? "visibility_off" : "visibility";
+    });
+  });
+
+  saveProfileButton.addEventListener("click", async () => {
+    if (!profileFullNameInput || !profileUsernameInput) return;
+    const fullName = profileFullNameInput.value.trim();
+    const username = profileUsernameInput.value.trim();
+    const currentPassword = profileCurrentPasswordInput?.value || "";
+    const newPassword = profileNewPasswordInput?.value || "";
+
+    if (fullName.length < 2 || username.length < 2) {
+      if (profileModalStatus) {
+        profileModalStatus.textContent = "Full name and username must be at least 2 characters.";
+      }
+      return;
+    }
+
+    if (newPassword && !currentPassword) {
+      if (profileModalStatus) profileModalStatus.textContent = "Current password is required to change password.";
+      return;
+    }
+
+    if (newPassword && newPassword.length < 6) {
+      if (profileModalStatus) profileModalStatus.textContent = "New password must be at least 6 characters.";
+      return;
+    }
+
+    if (profileModalStatus) profileModalStatus.textContent = "Saving profile changes...";
+
+    const response = await fetch("/auth/profile", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        fullName,
+        username,
+        currentPassword,
+        newPassword,
+      }),
+    });
+
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      if (profileModalStatus) profileModalStatus.textContent = result.message || "Failed to update profile.";
+      return;
+    }
+
+    authenticatedUser = result.user || authenticatedUser;
+    applyProfileHeader(authenticatedUser);
+    closeProfileModal();
+  });
 };
 
 const resetCashSaleForm = () => {
@@ -202,21 +349,8 @@ const loadDashboard = async () => {
   const salesData = await salesRes.json();
 
   const user = meData.user || {};
-  const displayName = user.fullName || user.username || "Sales Agent";
-  const role = user.role || "Sales Agent";
-  const branch = user.branch || "N/A";
-
-  if (userContext) {
-    userContext.textContent = `${displayName} (${role}) - Branch: ${branch}. Record and monitor daily sales from this dashboard.`;
-  }
-
-  const profileName = document.getElementById("profileName");
-  const profileMeta = document.getElementById("profileMeta");
-  const overviewGreeting = document.getElementById("overviewGreeting");
-
-  if (profileName) profileName.textContent = displayName;
-  if (profileMeta) profileMeta.textContent = `${role} - ${branch}`;
-  if (overviewGreeting) overviewGreeting.textContent = `Good day, ${displayName}`;
+  authenticatedUser = user;
+  applyProfileHeader(user);
 
   const cashSales = salesData.cashSales || [];
   const creditSales = salesData.creditSales || [];
@@ -362,6 +496,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   document.getElementById("logoutButton")?.addEventListener("click", () => {
     window.location.href = "/logout";
   });
+
+  setupProfileMenu();
 
   document.getElementById("cashSaleForm")?.addEventListener("submit", (event) => {
     handleCashSubmit(event).catch((error) => {

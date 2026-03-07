@@ -2,6 +2,9 @@ const formatNumber = (value) => new Intl.NumberFormat("en-UG").format(value || 0
 let directorUserId = null;
 let managedUsers = [];
 let pendingDeleteUserId = null;
+let authenticatedUser = null;
+let notificationsCache = [];
+let unreadNotifications = 0;
 
 const toDateSafe = (value) => {
   const date = new Date(value);
@@ -465,6 +468,209 @@ const closeDeleteUserModal = () => {
   pendingDeleteUserId = null;
 };
 
+const applyProfileHeader = (user) => {
+  if (!user) return;
+  const displayName = user.fullName || user.username || "User";
+  const role = (user.role || "User").toUpperCase();
+
+  const profileName = document.getElementById("profileName");
+  const profileRole = document.getElementById("profileRole");
+  const overviewGreeting = document.getElementById("overviewGreeting");
+  const overviewSubtext = document.getElementById("overviewSubtext");
+
+  if (profileName) profileName.textContent = displayName;
+  if (profileRole) profileRole.textContent = role;
+  if (overviewGreeting) overviewGreeting.textContent = `Welcome, ${displayName}`;
+  if (overviewSubtext) {
+    overviewSubtext.textContent =
+      "Live, system-wide sales and credit insights across all branches.";
+  }
+};
+
+const renderDirectorNotifications = () => {
+  const badge = document.getElementById("notificationBadge");
+  const list = document.getElementById("notificationList");
+  if (!badge || !list) return;
+
+  badge.style.display = unreadNotifications > 0 ? "inline-block" : "none";
+  badge.textContent = String(unreadNotifications > 99 ? "99+" : unreadNotifications);
+
+  if (!notificationsCache.length) {
+    list.innerHTML =
+      '<div style="font-size:12px; color:#64748b; padding:8px;">No profile update notifications yet.</div>';
+    return;
+  }
+
+  list.innerHTML = notificationsCache
+    .map((item) => {
+      const when = toDateSafe(item.createdAt);
+      const dateLabel = when ? when.toLocaleString() : "Just now";
+      return `
+        <div style="border-radius:10px; padding:10px; background:#f8fafc; border:1px solid #e2e8f0;">
+          <p style="margin:0; font-size:12px; font-weight:700; color:#0f172a;">${escapeHtml(item.message || "Profile updated.")}</p>
+          <p style="margin:4px 0 0 0; font-size:11px; color:#64748b;">${dateLabel}</p>
+        </div>
+      `;
+    })
+    .join("");
+};
+
+const loadDirectorNotifications = async () => {
+  const response = await fetch("/notifications/director?limit=10");
+  const payload = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(payload.message || "Failed to load notifications.");
+  }
+
+  notificationsCache = payload.notifications || [];
+  unreadNotifications = Number(payload.unreadCount || 0);
+  renderDirectorNotifications();
+};
+
+const markDirectorNotificationsAsRead = async () => {
+  const response = await fetch("/notifications/director/read-all", {
+    method: "POST",
+  });
+  if (!response.ok) return;
+
+  unreadNotifications = 0;
+  notificationsCache = notificationsCache.map((item) => ({ ...item, isRead: true }));
+  renderDirectorNotifications();
+};
+
+const setupProfileMenu = ({ onProfileUpdated } = {}) => {
+  const menuToggle = document.getElementById("profileMenuToggle");
+  const menu = document.getElementById("profileMenu");
+  const manageProfileButton = document.getElementById("manageProfileButton");
+  const logoutFromMenuButton = document.getElementById("logoutFromMenuButton");
+  const profileModal = document.getElementById("profileModal");
+  const closeProfileModalButton = document.getElementById("closeProfileModalButton");
+  const cancelProfileModalButton = document.getElementById("cancelProfileModalButton");
+  const saveProfileButton = document.getElementById("saveProfileButton");
+  const profileModalStatus = document.getElementById("profileModalStatus");
+  const profileFullNameInput = document.getElementById("profileFullNameInput");
+  const profileUsernameInput = document.getElementById("profileUsernameInput");
+  const profileCurrentPasswordInput = document.getElementById("profileCurrentPasswordInput");
+  const profileNewPasswordInput = document.getElementById("profileNewPasswordInput");
+
+  if (!menuToggle || !menu || !profileModal || !saveProfileButton) return;
+
+  const closeMenu = () => menu.classList.remove("open");
+  const openMenu = () => menu.classList.add("open");
+  const toggleMenu = () => menu.classList.toggle("open");
+
+  const closeProfileModal = () => {
+    profileModal.classList.remove("open");
+    if (profileModalStatus) profileModalStatus.textContent = "";
+    if (profileCurrentPasswordInput) profileCurrentPasswordInput.value = "";
+    if (profileNewPasswordInput) profileNewPasswordInput.value = "";
+  };
+
+  const openProfileModal = () => {
+    if (profileFullNameInput) profileFullNameInput.value = authenticatedUser?.fullName || "";
+    if (profileUsernameInput) profileUsernameInput.value = authenticatedUser?.username || "";
+    if (profileCurrentPasswordInput) profileCurrentPasswordInput.value = "";
+    if (profileNewPasswordInput) profileNewPasswordInput.value = "";
+    if (profileModalStatus) profileModalStatus.textContent = "";
+    profileModal.classList.add("open");
+  };
+
+  menuToggle.addEventListener("click", (event) => {
+    event.stopPropagation();
+    toggleMenu();
+  });
+
+  manageProfileButton?.addEventListener("click", () => {
+    closeMenu();
+    openProfileModal();
+  });
+
+  logoutFromMenuButton?.addEventListener("click", () => {
+    window.location.href = "/logout";
+  });
+
+  closeProfileModalButton?.addEventListener("click", closeProfileModal);
+  cancelProfileModalButton?.addEventListener("click", closeProfileModal);
+
+  profileModal.addEventListener("click", (event) => {
+    if (event.target.id === "profileModal") {
+      closeProfileModal();
+    }
+  });
+
+  document.addEventListener("click", (event) => {
+    if (!menu.contains(event.target) && !menuToggle.contains(event.target)) {
+      closeMenu();
+    }
+  });
+
+  document.querySelectorAll(".password-toggle-btn[data-target]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const targetId = button.getAttribute("data-target");
+      const input = targetId ? document.getElementById(targetId) : null;
+      const icon = button.querySelector(".material-symbols-outlined");
+      if (!input || !icon) return;
+
+      const isHidden = input.type === "password";
+      input.type = isHidden ? "text" : "password";
+      icon.textContent = isHidden ? "visibility_off" : "visibility";
+    });
+  });
+
+  saveProfileButton.addEventListener("click", async () => {
+    if (!profileFullNameInput || !profileUsernameInput) return;
+    const fullName = profileFullNameInput.value.trim();
+    const username = profileUsernameInput.value.trim();
+    const currentPassword = profileCurrentPasswordInput?.value || "";
+    const newPassword = profileNewPasswordInput?.value || "";
+
+    if (fullName.length < 2 || username.length < 2) {
+      if (profileModalStatus) {
+        profileModalStatus.textContent = "Full name and username must be at least 2 characters.";
+      }
+      return;
+    }
+
+    if (newPassword && !currentPassword) {
+      if (profileModalStatus) profileModalStatus.textContent = "Current password is required to change password.";
+      return;
+    }
+
+    if (newPassword && newPassword.length < 6) {
+      if (profileModalStatus) profileModalStatus.textContent = "New password must be at least 6 characters.";
+      return;
+    }
+
+    if (profileModalStatus) profileModalStatus.textContent = "Saving profile changes...";
+
+    const response = await fetch("/auth/profile", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        fullName,
+        username,
+        currentPassword,
+        newPassword,
+      }),
+    });
+
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      if (profileModalStatus) profileModalStatus.textContent = result.message || "Failed to update profile.";
+      return;
+    }
+
+    authenticatedUser = result.user || authenticatedUser;
+    applyProfileHeader(authenticatedUser);
+    closeProfileModal();
+
+    if (typeof onProfileUpdated === "function") {
+      await onProfileUpdated(authenticatedUser);
+    }
+  });
+};
+
 const renderUsersTable = (users) => {
   const body = document.getElementById("usersTableBody");
   if (!body) return;
@@ -649,6 +855,7 @@ const loadDirectorDashboard = async () => {
     stockRes,
     procurementSummaryRes,
     procurementRecordsRes,
+    notificationsRes,
   ] = await Promise.all([
     fetch("/auth/me"),
     fetch("/sales/summary"),
@@ -656,6 +863,7 @@ const loadDirectorDashboard = async () => {
     fetch("/stock/summary"),
     fetch("/procurement/summary"),
     fetch("/procurement/records"),
+    fetch("/notifications/director?limit=10"),
   ]);
 
   if (!meRes.ok) {
@@ -665,6 +873,7 @@ const loadDirectorDashboard = async () => {
 
   const meData = await meRes.json().catch(() => ({}));
   const user = meData.user || {};
+  authenticatedUser = user;
 
   if (
     summaryRes.status === 403 ||
@@ -691,14 +900,16 @@ const loadDirectorDashboard = async () => {
   const procurementRecordsData = procurementRecordsRes.ok
     ? await procurementRecordsRes.json()
     : { message: "Procurement records are currently unavailable.", records: [] };
+  const notificationsData = notificationsRes.ok
+    ? await notificationsRes.json()
+    : { notifications: [], unreadCount: 0 };
 
-  const displayName = user.fullName || user.username || "Director";
+  notificationsCache = notificationsData.notifications || [];
+  unreadNotifications = Number(notificationsData.unreadCount || 0);
+  renderDirectorNotifications();
+
   directorUserId = user._id || user.id || null;
-  document.getElementById("profileName").textContent = displayName;
-  document.getElementById("profileRole").textContent = (user.role || "Director").toUpperCase();
-  document.getElementById("overviewGreeting").textContent = `Welcome, ${displayName}`;
-  document.getElementById("overviewSubtext").textContent =
-    "Live, system-wide sales and credit insights across all branches.";
+  applyProfileHeader(user);
 
   const cashByBranch = summaryData.cashByBranch || [];
   const totalRevenue = cashByBranch.reduce((sum, row) => sum + (row.totalCashAmount || 0), 0);
@@ -782,6 +993,49 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   document.getElementById("logoutButton")?.addEventListener("click", () => {
     window.location.href = "/logout";
+  });
+
+  const notificationToggle = document.getElementById("notificationToggle");
+  const notificationPanel = document.getElementById("notificationPanel");
+  notificationToggle?.addEventListener("click", async (event) => {
+    event.stopPropagation();
+    if (!notificationPanel) return;
+
+    const isOpen = notificationPanel.style.display === "block";
+    if (isOpen) {
+      notificationPanel.style.display = "none";
+      return;
+    }
+
+    notificationPanel.style.display = "block";
+    try {
+      await loadDirectorNotifications();
+      await markDirectorNotificationsAsRead();
+    } catch (_) {
+      // Keep the panel open with last known state.
+    }
+  });
+
+  document.addEventListener("click", (event) => {
+    if (!notificationPanel || !notificationToggle) return;
+    if (
+      notificationPanel.style.display === "block" &&
+      !notificationPanel.contains(event.target) &&
+      !notificationToggle.contains(event.target)
+    ) {
+      notificationPanel.style.display = "none";
+    }
+  });
+
+  setupProfileMenu({
+    onProfileUpdated: async () => {
+      try {
+        await loadUsers();
+      } catch (error) {
+        const usersStatus = document.getElementById("usersStatus");
+        if (usersStatus) usersStatus.textContent = error.message;
+      }
+    },
   });
 
   try {

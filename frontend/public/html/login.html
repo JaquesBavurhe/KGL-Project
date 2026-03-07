@@ -5,6 +5,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>KGL - Login Form</title>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="../assets/favicon_io/favicon.ico">
+    
+    <!-- Styles -->
     <link rel="stylesheet" href="../css/styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap"
         rel="stylesheet">
@@ -29,6 +34,80 @@
     .error-message i {
         color: var(--accent-orange);
         font-size: 1rem;
+    }
+
+    .first-login-modal {
+        position: fixed;
+        inset: 0;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 10000;
+        padding: 1rem;
+    }
+
+    .first-login-modal.open {
+        display: flex;
+    }
+
+    .first-login-modal-backdrop {
+        position: absolute;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.65);
+    }
+
+    .first-login-modal-card {
+        position: relative;
+        width: min(460px, 100%);
+        background: #fff;
+        border-radius: 16px;
+        padding: 1.2rem;
+        box-shadow: 0 24px 48px rgba(2, 6, 23, 0.28);
+    }
+
+    .first-login-modal-card h3 {
+        font-size: 1.1rem;
+        margin-bottom: 0.35rem;
+    }
+
+    .first-login-modal-card p {
+        font-size: 0.9rem;
+        color: #475569;
+        margin-bottom: 1rem;
+    }
+
+    .first-login-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.55rem;
+        margin-top: 0.8rem;
+    }
+
+    .first-login-btn {
+        border: 0;
+        border-radius: 10px;
+        padding: 0.58rem 0.85rem;
+        font-size: 0.85rem;
+        font-weight: 700;
+        cursor: pointer;
+    }
+
+    .first-login-btn.secondary {
+        background: #e2e8f0;
+        color: #0f172a;
+    }
+
+    .first-login-btn.primary {
+        background: linear-gradient(90deg, #2f8860 0%, #3db37a 100%);
+        color: #fff;
+    }
+
+    .first-login-step {
+        display: none;
+    }
+
+    .first-login-step.active {
+        display: block;
     }
 </style>
 
@@ -118,6 +197,51 @@
                     </div>
                 </footer> -->
             </main>
+        </div>
+    </div>
+    <div id="firstLoginModal" class="first-login-modal" aria-hidden="true">
+        <div class="first-login-modal-backdrop"></div>
+        <div class="first-login-modal-card" role="dialog" aria-modal="true" aria-labelledby="firstLoginTitle">
+            <div id="firstLoginPromptStep" class="first-login-step active">
+                <h3 id="firstLoginTitle">Reset your password now?</h3>
+                <p>This looks like your first login with a director-assigned password.</p>
+                <div class="first-login-actions">
+                    <button id="firstLoginLaterBtn" type="button" class="first-login-btn secondary">Maybe later</button>
+                    <button id="firstLoginProceedBtn" type="button" class="first-login-btn primary">Reset now</button>
+                </div>
+            </div>
+
+            <div id="firstLoginFormStep" class="first-login-step">
+                <h3>Change Password</h3>
+                <p>Enter your current password and set a new password.</p>
+
+                <form id="firstLoginPasswordForm" novalidate>
+                    <div class="input-group">
+                        <label for="firstLoginCurrentPassword">Current Password</label>
+                        <div class="input-wrapper">
+                            <i class="fa-solid fa-lock input-icon"></i>
+                            <input type="password" id="firstLoginCurrentPassword" placeholder="Enter current password" required>
+                            <i class="fa-solid fa-eye toggle-password" id="toggleFirstLoginCurrentPassword"></i>
+                        </div>
+                        <small class="error-message" id="firstLoginCurrentPasswordError"></small>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="firstLoginNewPassword">New Password</label>
+                        <div class="input-wrapper">
+                            <i class="fa-solid fa-lock input-icon"></i>
+                            <input type="password" id="firstLoginNewPassword" placeholder="Enter new password" required>
+                            <i class="fa-solid fa-eye toggle-password" id="toggleFirstLoginNewPassword"></i>
+                        </div>
+                        <small class="error-message" id="firstLoginNewPasswordError"></small>
+                    </div>
+
+                    <div class="first-login-actions">
+                        <button id="firstLoginBackBtn" type="button" class="first-login-btn secondary">Back</button>
+                        <button type="submit" class="first-login-btn primary">Save Password</button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
     <script src="../js/formHandler.js"></script>

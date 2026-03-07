@@ -150,6 +150,20 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   };
 
+  const bindPasswordToggle = (toggleId, inputId) => {
+    const toggle = document.getElementById(toggleId);
+    const input = document.getElementById(inputId);
+
+    if (!toggle || !input) return;
+
+    toggle.addEventListener("click", () => {
+      const nextType = input.getAttribute("type") === "password" ? "text" : "password";
+      input.setAttribute("type", nextType);
+      toggle.classList.toggle("fa-eye");
+      toggle.classList.toggle("fa-eye-slash");
+    });
+  };
+
   // Ensure error-message spacing/animation styles are present on initial page render.
   ensureFieldErrorStyles();
 
@@ -277,6 +291,53 @@ document.addEventListener("DOMContentLoaded", () => {
   if (loginForm) {
     bindInputToClearError("username", "usernameError");
     bindInputToClearError("password", "passwordError");
+    bindInputToClearError("firstLoginCurrentPassword", "firstLoginCurrentPasswordError");
+    bindInputToClearError("firstLoginNewPassword", "firstLoginNewPasswordError");
+
+    const firstLoginModal = document.getElementById("firstLoginModal");
+    const firstLoginPromptStep = document.getElementById("firstLoginPromptStep");
+    const firstLoginFormStep = document.getElementById("firstLoginFormStep");
+    const firstLoginProceedBtn = document.getElementById("firstLoginProceedBtn");
+    const firstLoginLaterBtn = document.getElementById("firstLoginLaterBtn");
+    const firstLoginBackBtn = document.getElementById("firstLoginBackBtn");
+    const firstLoginPasswordForm = document.getElementById("firstLoginPasswordForm");
+    const firstLoginCurrentPassword = document.getElementById("firstLoginCurrentPassword");
+    const firstLoginNewPassword = document.getElementById("firstLoginNewPassword");
+
+    let cachedLoginPassword = "";
+
+    const redirectToDashboard = () => {
+      window.location.href = "/dashboard";
+    };
+
+    const openFirstLoginModal = () => {
+      if (!firstLoginModal) return;
+      firstLoginModal.classList.add("open");
+      firstLoginModal.setAttribute("aria-hidden", "false");
+    };
+
+    const closeFirstLoginModal = () => {
+      if (!firstLoginModal) return;
+      firstLoginModal.classList.remove("open");
+      firstLoginModal.setAttribute("aria-hidden", "true");
+    };
+
+    const showFirstLoginPromptStep = () => {
+      if (!firstLoginPromptStep || !firstLoginFormStep) return;
+      firstLoginPromptStep.classList.add("active");
+      firstLoginFormStep.classList.remove("active");
+      clearFieldError(document.getElementById("firstLoginCurrentPasswordError"), true);
+      clearFieldError(document.getElementById("firstLoginNewPasswordError"), true);
+    };
+
+    const showFirstLoginFormStep = () => {
+      if (!firstLoginPromptStep || !firstLoginFormStep) return;
+      firstLoginPromptStep.classList.remove("active");
+      firstLoginFormStep.classList.add("active");
+      if (firstLoginCurrentPassword) firstLoginCurrentPassword.value = cachedLoginPassword;
+      if (firstLoginNewPassword) firstLoginNewPassword.value = "";
+      if (firstLoginNewPassword) firstLoginNewPassword.focus();
+    };
 
     loginForm.addEventListener("submit", async (e) => {
       e.preventDefault();
@@ -311,10 +372,19 @@ document.addEventListener("DOMContentLoaded", () => {
         const result = await response.json();
 
         if (response.ok) {
-          showToast("Login successful. Redirecting...", "success");
-          setTimeout(() => {
-            window.location.href = "/dashboard";
-          }, 900);
+          const mustResetPassword = Boolean(result?.user?.mustResetPassword);
+          cachedLoginPassword = password;
+
+          if (mustResetPassword) {
+            showToast("Login successful.", "success");
+            openFirstLoginModal();
+            showFirstLoginPromptStep();
+          } else {
+            showToast("Login successful. Redirecting...", "success");
+            setTimeout(() => {
+              redirectToDashboard();
+            }, 900);
+          }
         } else {
           showToast(result.message || "Login failed", "error");
         }
@@ -323,21 +393,95 @@ document.addEventListener("DOMContentLoaded", () => {
         showToast("Network error. Is the server running?", "error");
       }
     });
+
+    if (firstLoginProceedBtn) {
+      firstLoginProceedBtn.addEventListener("click", () => {
+        showFirstLoginFormStep();
+      });
+    }
+
+    if (firstLoginBackBtn) {
+      firstLoginBackBtn.addEventListener("click", () => {
+        showFirstLoginPromptStep();
+      });
+    }
+
+    if (firstLoginLaterBtn) {
+      firstLoginLaterBtn.addEventListener("click", () => {
+        closeFirstLoginModal();
+        showToast("You can update your password later.", "info");
+        setTimeout(() => {
+          redirectToDashboard();
+        }, 700);
+      });
+    }
+
+    if (firstLoginPasswordForm) {
+      firstLoginPasswordForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        clearFieldError(document.getElementById("firstLoginCurrentPasswordError"), true);
+        clearFieldError(document.getElementById("firstLoginNewPasswordError"), true);
+
+        const currentPassword = firstLoginCurrentPassword ? firstLoginCurrentPassword.value : "";
+        const newPassword = firstLoginNewPassword ? firstLoginNewPassword.value : "";
+        let modalFormValid = true;
+
+        if (currentPassword.length < 6) {
+          setFieldError("firstLoginCurrentPasswordError", "Current password must be at least 6 characters.");
+          modalFormValid = false;
+        }
+
+        if (newPassword.length < 6) {
+          setFieldError("firstLoginNewPasswordError", "New password must be at least 6 characters.");
+          modalFormValid = false;
+        }
+
+        if (currentPassword && newPassword && currentPassword === newPassword) {
+          setFieldError("firstLoginNewPasswordError", "New password must be different from current password.");
+          modalFormValid = false;
+        }
+
+        if (!modalFormValid) {
+          showToast("Please fix the password form errors.", "error");
+          return;
+        }
+
+        try {
+          const response = await fetch("/auth/reset-first-password", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ currentPassword, newPassword }),
+          });
+
+          const result = await response.json();
+
+          if (response.ok) {
+            closeFirstLoginModal();
+            showToast("Password changed successfully. Redirecting...", "success");
+            setTimeout(() => {
+              redirectToDashboard();
+            }, 900);
+            return;
+          }
+
+          if (response.status === 401) {
+            setFieldError("firstLoginCurrentPasswordError", "Current password is incorrect.");
+          } else if (response.status === 400 && result.message) {
+            setFieldError("firstLoginNewPasswordError", result.message);
+          } else {
+            showToast(result.message || "Failed to reset password.", "error");
+          }
+        } catch (error) {
+          console.error("Password reset error:", error);
+          showToast("Network error. Is the server running?", "error");
+        }
+      });
+    }
   }
 
-  const passwordInput = document.getElementById("password");
-  const togglePassword = document.getElementById("togglePassword");
-
-  if (togglePassword) {
-    togglePassword.addEventListener("click", () => {
-      const type =
-        passwordInput.getAttribute("type") === "password" ? "text" : "password";
-      passwordInput.setAttribute("type", type);
-
-      togglePassword.classList.toggle("fa-eye");
-      togglePassword.classList.toggle("fa-eye-slash");
-    });
-  }
+  bindPasswordToggle("togglePassword", "password");
+  bindPasswordToggle("toggleFirstLoginCurrentPassword", "firstLoginCurrentPassword");
+  bindPasswordToggle("toggleFirstLoginNewPassword", "firstLoginNewPassword");
 
   const logoutButton = document.getElementById("logoutButton");
   if (logoutButton) {
