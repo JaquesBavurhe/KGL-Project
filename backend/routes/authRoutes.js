@@ -22,7 +22,8 @@ const buildToken = (user) =>
   );
 
 // Shared cookie settings for storing the auth token in the browser.
-const useCrossSiteCookies = process.env.CROSS_SITE_COOKIES === "true";
+const useCrossSiteCookies =
+  process.env.CROSS_SITE_COOKIES === "true" || process.env.NODE_ENV === "production";
 const authCookieOptions = {
   httpOnly: true,
   sameSite: useCrossSiteCookies ? "none" : "lax",
@@ -53,7 +54,7 @@ const createDirectorProfileChangeNotifications = async ({ actorUser, changedFiel
 
 // Serves the login page.
 router.get("/login", (req, res) => {
-  res.sendFile(path.join(__dirname, "../../frontend/public/html/login.html"));
+  res.sendFile(path.join(__dirname, "../../frontend/public/login.html"));
 });
 
 // Authenticates user credentials and returns a JWT + safe user profile.

@@ -1,11 +1,52 @@
+// Core formatter/API helpers shared across director dashboard workflows.
 const formatNumber = (value) => new Intl.NumberFormat("en-UG").format(value || 0);
-const apiFetch = (url, options = {}) => fetch(url, { credentials: "include", ...options });
+const API_BASE_URL = "https://kgl-backend-2-5od0.onrender.com";
+// const API_BASE_URL = "http://localhost:3000";
+const buildApiUrl = (url) =>
+  /^https?:\/\//i.test(url)
+    ? url
+    : `${API_BASE_URL}${url.startsWith("/") ? "" : "/"}${url}`;
+const apiFetch = async (url, options = {}) => {
+  const { showLoader = true, loadingMessage = "Loading...", ...fetchOptions } = options;
+  if (showLoader && window.AppLoader) {
+    window.AppLoader.show(loadingMessage);
+  }
+  try {
+    return await fetch(buildApiUrl(url), { credentials: "include", ...fetchOptions });
+  } finally {
+    if (showLoader && window.AppLoader) {
+      window.AppLoader.hide();
+    }
+  }
+};
+const redirectToLoginPage = () => {
+  window.location.href = "/login.html";
+};
+// Attempts backend logout, then always routes session back to login.
+const logoutAndRedirect = async () => {
+  try {
+    await apiFetch("/logout");
+  } catch (_) {
+    // Ignore logout API errors and still clear frontend session state.
+  }
+  redirectToLoginPage();
+};
 let directorUserId = null;
 let managedUsers = [];
 let pendingDeleteUserId = null;
 let authenticatedUser = null;
 let notificationsCache = [];
 let unreadNotifications = 0;
+
+// Bridges page-level "load dashboard" intent to shared global loader utility.
+const setDashboardLoading = (isLoading, message = "Loading dashboard...") => {
+  if (!window.AppLoader) return;
+  if (isLoading) {
+    window.AppLoader.show(message);
+  } else {
+    window.AppLoader.hide();
+  }
+};
 
 // Shared helpers for safe date parsing and HTML escaping.
 const toDateSafe = (value) => {
@@ -21,6 +62,7 @@ const escapeHtml = (value) =>
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#39;");
 
+// Keeps sidebar navigation and section visibility in sync.
 const setNavSection = (targetId) => {
   const navItems = document.querySelectorAll(".nav-item[data-target]");
   const sections = document.querySelectorAll(".view-section");
@@ -35,6 +77,7 @@ const setNavSection = (targetId) => {
 };
 
 // Aggregation/render helpers for dashboard overview cards and tables.
+// Combines cash + credit API records into one normalized sales row model.
 const buildSalesRows = (cashSales, creditSales) => {
   const cashRows = (cashSales || []).map((sale) => ({
     id: sale._id,
@@ -67,6 +110,7 @@ const buildSalesRows = (cashSales, creditSales) => {
   );
 };
 
+// Renders branch sales bars from normalized sales rows.
 const renderSalesByBranch = (rows) => {
   const container = document.getElementById("salesByBranchContainer");
   if (!container) return;
@@ -102,6 +146,7 @@ const renderSalesByBranch = (rows) => {
     .join("");
 };
 
+// Renders top produce sales ranking by total value.
 const renderTopProduceByValue = (rows) => {
   const container = document.getElementById("topProduceContainer");
   if (!container) return;
@@ -133,6 +178,7 @@ const renderTopProduceByValue = (rows) => {
     .join("");
 };
 
+// Renders latest sales entries in the recent-log table.
 const renderRecentSalesLog = (rows) => {
   const body = document.getElementById("recentSalesBody");
   if (!body) return;
@@ -167,6 +213,7 @@ const renderRecentSalesLog = (rows) => {
     .join("");
 };
 
+// Computes and renders credit KPIs, branch totals, and overdue debtor rows.
 const renderCreditBreakdown = (creditSales) => {
   const issued = (creditSales || []).reduce((sum, sale) => sum + (sale.amountDue || 0), 0);
   const unpaid = (creditSales || [])
@@ -236,6 +283,7 @@ const renderCreditBreakdown = (creditSales) => {
 
 };
 
+// Renders procurement KPIs, summaries, and recent procurement table.
 const renderProcurementSummary = (procurementSummary, procurementRecords) => {
   const totals = procurementSummary?.totals || {
     totalProcurements: 0,
@@ -338,6 +386,7 @@ const renderProcurementSummary = (procurementSummary, procurementRecords) => {
     : '<tr><td colspan="6" style="text-align:center; color:#64748b;">No procurement records available.</td></tr>';
 };
 
+// Renders stock KPIs, branch/produce summaries, and low-stock table.
 const renderStockSummary = (stockData) => {
   const {
     totals = { totalItems: 0, totalQuantityKg: 0, totalStockValue: 0 },
@@ -427,6 +476,7 @@ const renderStockSummary = (stockData) => {
     `Low stock threshold: ${formatNumber(thresholdKg)} KG`;
 };
 
+// Disables branch selector whenever selected role is Director.
 const syncUserBranchState = () => {
   const roleField = document.getElementById("userRole");
   const branchField = document.getElementById("userBranch");
@@ -439,6 +489,7 @@ const syncUserBranchState = () => {
   }
 };
 
+// Clears user modal fields and restores defaults for create mode.
 const resetUserForm = () => {
   document.getElementById("userId").value = "";
   document.getElementById("userFullName").value = "";
@@ -471,6 +522,7 @@ const closeDeleteUserModal = () => {
 };
 
 // Syncs top-bar/profile hero labels with the latest authenticated user info.
+// Syncs top-bar/profile hero labels with latest authenticated user identity.
 const applyProfileHeader = (user) => {
   if (!user) return;
   const displayName = user.fullName || user.username || "User";
@@ -491,6 +543,7 @@ const applyProfileHeader = (user) => {
 };
 
 // Renders the director notification dropdown and unread badge state.
+// Renders notification dropdown list and unread count badge.
 const renderDirectorNotifications = () => {
   const badge = document.getElementById("notificationBadge");
   const list = document.getElementById("notificationList");
@@ -520,8 +573,11 @@ const renderDirectorNotifications = () => {
 };
 
 // Fetches the latest profile-change notifications for the current director.
+// Fetches latest profile-change notifications for the current director.
 const loadDirectorNotifications = async () => {
-  const response = await apiFetch("/notifications/director?limit=10");
+  const response = await apiFetch("/notifications/director?limit=10", {
+    showLoader: false,
+  });
   const payload = await response.json().catch(() => ({}));
 
   if (!response.ok) {
@@ -534,9 +590,11 @@ const loadDirectorNotifications = async () => {
 };
 
 // Clears unread count once the director opens the notification panel.
+// Marks all director notifications as read after opening panel.
 const markDirectorNotificationsAsRead = async () => {
   const response = await apiFetch("/notifications/director/read-all", {
     method: "POST",
+    showLoader: false,
   });
   if (!response.ok) return;
 
@@ -592,8 +650,8 @@ const setupProfileMenu = ({ onProfileUpdated } = {}) => {
     openProfileModal();
   });
 
-  logoutFromMenuButton?.addEventListener("click", () => {
-    window.location.href = "/logout";
+  logoutFromMenuButton?.addEventListener("click", async () => {
+    await logoutAndRedirect();
   });
 
   closeProfileModalButton?.addEventListener("click", closeProfileModal);
@@ -677,6 +735,7 @@ const setupProfileMenu = ({ onProfileUpdated } = {}) => {
   });
 };
 
+// Renders user-management table rows with edit/delete action controls.
 const renderUsersTable = (users) => {
   const body = document.getElementById("usersTableBody");
   if (!body) return;
@@ -713,6 +772,7 @@ const renderUsersTable = (users) => {
     .join("");
 };
 
+// Loads all users visible to director into cache and table.
 const loadUsers = async () => {
   const usersStatus = document.getElementById("usersStatus");
   if (usersStatus) usersStatus.textContent = "Loading users...";
@@ -729,6 +789,7 @@ const loadUsers = async () => {
   if (usersStatus) usersStatus.textContent = "";
 };
 
+// Handles create/update user submission from the modal form.
 const handleSaveUser = async () => {
   const usersStatus = document.getElementById("usersStatus");
   const userModalStatus = document.getElementById("userModalStatus");
@@ -797,6 +858,7 @@ const handleSaveUser = async () => {
   await loadUsers();
 };
 
+// Pre-fills modal with selected user values and switches to edit mode.
 const handleEditUser = (id) => {
   const target = managedUsers.find((user) => String(user._id) === String(id));
   if (!target) return;
@@ -816,6 +878,7 @@ const handleEditUser = (id) => {
   setNavSection("users");
 };
 
+// Deletes selected user and refreshes user table/cache.
 const handleDeleteUser = async (id) => {
   const usersStatus = document.getElementById("usersStatus");
   if (!managedUsers.some((user) => String(user._id) === String(id))) return;
@@ -832,6 +895,7 @@ const handleDeleteUser = async (id) => {
   await loadUsers();
 };
 
+// Opens confirmation modal for destructive user delete action.
 const promptDeleteUser = (id) => {
   const target = managedUsers.find((user) => String(user._id) === String(id));
   if (!target) return;
@@ -845,129 +909,141 @@ const promptDeleteUser = (id) => {
   openDeleteUserModal();
 };
 
+// Hydrates entire director dashboard: auth, KPIs, charts, tables, users.
 const loadDirectorDashboard = async () => {
   const salesStatus = document.getElementById("salesStatus");
   const stockStatus = document.getElementById("stockStatus");
   const procurementStatus = document.getElementById("procurementStatus");
+  setDashboardLoading(true, "Loading dashboard...");
   if (salesStatus) salesStatus.textContent = "Loading dashboard data...";
   if (stockStatus) stockStatus.textContent = "Loading stock data...";
   if (procurementStatus) procurementStatus.textContent = "Loading procurement data...";
-
-  const [
-    meRes,
-    summaryRes,
-    recordsRes,
-    stockRes,
-    procurementSummaryRes,
-    procurementRecordsRes,
-    notificationsRes,
-  ] = await Promise.all([
-    apiFetch("/auth/me"),
-    apiFetch("/sales/summary"),
-    apiFetch("/sales/records?type=all"),
-    apiFetch("/stock/summary"),
-    apiFetch("/procurement/summary"),
-    apiFetch("/procurement/records"),
-    apiFetch("/notifications/director?limit=10"),
-  ]);
-
-  if (!meRes.ok) {
-    window.location.href = "/login";
-    return;
-  }
-
-  const meData = await meRes.json().catch(() => ({}));
-  const user = meData.user || {};
-  authenticatedUser = user;
-
-  if (
-    summaryRes.status === 403 ||
-    recordsRes.status === 403 ||
-    stockRes.status === 403 ||
-    procurementSummaryRes.status === 403 ||
-    procurementRecordsRes.status === 403
-  ) {
-    throw new Error("Only directors can view this dashboard.");
-  }
-
-  if (!summaryRes.ok || !recordsRes.ok) {
-    throw new Error("Failed to load director dashboard data.");
-  }
-
-  const summaryData = await summaryRes.json();
-  const recordsData = await recordsRes.json();
-  const stockData = stockRes.ok
-    ? await stockRes.json()
-    : { message: "Stock summary is currently unavailable." };
-  const procurementSummaryData = procurementSummaryRes.ok
-    ? await procurementSummaryRes.json()
-    : { message: "Procurement summary is currently unavailable." };
-  const procurementRecordsData = procurementRecordsRes.ok
-    ? await procurementRecordsRes.json()
-    : { message: "Procurement records are currently unavailable.", records: [] };
-  const notificationsData = notificationsRes.ok
-    ? await notificationsRes.json()
-    : { notifications: [], unreadCount: 0 };
-
-  notificationsCache = notificationsData.notifications || [];
-  unreadNotifications = Number(notificationsData.unreadCount || 0);
-  renderDirectorNotifications();
-
-  directorUserId = user._id || user.id || null;
-  applyProfileHeader(user);
-
-  const cashByBranch = summaryData.cashByBranch || [];
-  const totalRevenue = cashByBranch.reduce((sum, row) => sum + (row.totalCashAmount || 0), 0);
-
-  const cashSales = recordsData.cashSales || [];
-  const creditSales = recordsData.creditSales || [];
-  const allRows = buildSalesRows(cashSales, creditSales);
-
-  const outstanding = creditSales
-    .filter((sale) => sale.status !== "Paid")
-    .reduce((sum, sale) => sum + (sale.amountDue || 0), 0);
-
-  const totalTonnage = allRows.reduce((sum, row) => sum + (row.tonnageKg || 0), 0);
-
-  document.getElementById("kpiTotalRevenue").textContent = formatNumber(totalRevenue);
-  document.getElementById("kpiCreditOutstanding").textContent = formatNumber(outstanding);
-  document.getElementById("kpiSalesRecords").textContent = formatNumber(allRows.length);
-  document.getElementById("kpiTonnageSold").textContent = formatNumber(totalTonnage);
-
-  renderSalesByBranch(allRows);
-  renderTopProduceByValue(allRows);
-  renderRecentSalesLog(allRows);
-  renderCreditBreakdown(creditSales);
-  renderStockSummary(stockData);
-  renderProcurementSummary(procurementSummaryData, procurementRecordsData);
-
-  if (procurementSummaryRes.ok && procurementRecordsRes.ok) {
-    document.getElementById("procurementStatus").textContent = "";
-  } else {
-    document.getElementById("procurementStatus").textContent =
-      procurementSummaryData.message ||
-      procurementRecordsData.message ||
-      "Procurement data is currently unavailable.";
-  }
-  if (!stockRes.ok) {
-    document.getElementById("stockStatus").textContent =
-      stockData.message || "Stock summary is currently unavailable.";
-  }
-
-  if (salesStatus) salesStatus.textContent = "";
-
   try {
-    await loadUsers();
-  } catch (error) {
-    const usersStatus = document.getElementById("usersStatus");
-    if (usersStatus) {
-      usersStatus.textContent = error.message;
-    }
-  }
+    // Fetch all core resources in parallel for faster first render.
+    const [
+      meRes,
+      summaryRes,
+      recordsRes,
+      stockRes,
+      procurementSummaryRes,
+      procurementRecordsRes,
+      notificationsRes,
+    ] = await Promise.all([
+      apiFetch("/auth/me"),
+      apiFetch("/sales/summary"),
+      apiFetch("/sales/records?type=all"),
+      apiFetch("/stock/summary"),
+      apiFetch("/procurement/summary"),
+      apiFetch("/procurement/records"),
+      apiFetch("/notifications/director?limit=10"),
+    ]);
 
-  return allRows;
+    if (!meRes.ok) {
+      // Session is not authenticated/valid anymore.
+      redirectToLoginPage();
+      return;
+    }
+
+    const meData = await meRes.json().catch(() => ({}));
+    const user = meData.user || {};
+    authenticatedUser = user;
+
+    if (
+      summaryRes.status === 403 ||
+      recordsRes.status === 403 ||
+      stockRes.status === 403 ||
+      procurementSummaryRes.status === 403 ||
+      procurementRecordsRes.status === 403
+    ) {
+      // Valid session but wrong role trying to access director dashboard.
+      throw new Error("Only directors can view this dashboard.");
+    }
+
+    if (!summaryRes.ok || !recordsRes.ok) {
+      // Sales summary + records are required to render the dashboard.
+      throw new Error("Failed to load director dashboard data.");
+    }
+
+    const summaryData = await summaryRes.json();
+    const recordsData = await recordsRes.json();
+    const stockData = stockRes.ok
+      ? await stockRes.json()
+      : { message: "Stock summary is currently unavailable." };
+    const procurementSummaryData = procurementSummaryRes.ok
+      ? await procurementSummaryRes.json()
+      : { message: "Procurement summary is currently unavailable." };
+    const procurementRecordsData = procurementRecordsRes.ok
+      ? await procurementRecordsRes.json()
+      : { message: "Procurement records are currently unavailable.", records: [] };
+    const notificationsData = notificationsRes.ok
+      ? await notificationsRes.json()
+      : { notifications: [], unreadCount: 0 };
+
+    notificationsCache = notificationsData.notifications || [];
+    unreadNotifications = Number(notificationsData.unreadCount || 0);
+    renderDirectorNotifications();
+
+    directorUserId = user._id || user.id || null;
+    applyProfileHeader(user);
+
+    const cashByBranch = summaryData.cashByBranch || [];
+    const totalRevenue = cashByBranch.reduce((sum, row) => sum + (row.totalCashAmount || 0), 0);
+
+    const cashSales = recordsData.cashSales || [];
+    const creditSales = recordsData.creditSales || [];
+    // Flatten cash and credit into one model reused by all sales visualizations.
+    const allRows = buildSalesRows(cashSales, creditSales);
+
+    const outstanding = creditSales
+      .filter((sale) => sale.status !== "Paid")
+      .reduce((sum, sale) => sum + (sale.amountDue || 0), 0);
+
+    const totalTonnage = allRows.reduce((sum, row) => sum + (row.tonnageKg || 0), 0);
+
+    document.getElementById("kpiTotalRevenue").textContent = formatNumber(totalRevenue);
+    document.getElementById("kpiCreditOutstanding").textContent = formatNumber(outstanding);
+    document.getElementById("kpiSalesRecords").textContent = formatNumber(allRows.length);
+    document.getElementById("kpiTonnageSold").textContent = formatNumber(totalTonnage);
+
+    renderSalesByBranch(allRows);
+    renderTopProduceByValue(allRows);
+    renderRecentSalesLog(allRows);
+    renderCreditBreakdown(creditSales);
+    renderStockSummary(stockData);
+    renderProcurementSummary(procurementSummaryData, procurementRecordsData);
+
+    if (procurementSummaryRes.ok && procurementRecordsRes.ok) {
+      document.getElementById("procurementStatus").textContent = "";
+    } else {
+      document.getElementById("procurementStatus").textContent =
+        procurementSummaryData.message ||
+        procurementRecordsData.message ||
+        "Procurement data is currently unavailable.";
+    }
+    if (!stockRes.ok) {
+      document.getElementById("stockStatus").textContent =
+        stockData.message || "Stock summary is currently unavailable.";
+    }
+
+    if (salesStatus) salesStatus.textContent = "";
+
+    try {
+      // User-management table is non-blocking relative to analytics cards.
+      await loadUsers();
+    } catch (error) {
+      const usersStatus = document.getElementById("usersStatus");
+      if (usersStatus) {
+        usersStatus.textContent = error.message;
+      }
+    }
+
+    return allRows;
+  } finally {
+    setDashboardLoading(false);
+  }
 };
 
+// Filters cached sales rows by free-text query and re-renders sales widgets.
 const applySearchFilter = (rows) => {
   const searchInput = document.getElementById("searchInput");
   const query = (searchInput?.value || "").trim().toLowerCase();
@@ -988,6 +1064,7 @@ const applySearchFilter = (rows) => {
 
 // Entry point: wire UI events then load dashboard data.
 document.addEventListener("DOMContentLoaded", async () => {
+  // Sidebar navigation tab switching.
   const navItems = document.querySelectorAll(".nav-item[data-target]");
   navItems.forEach((item) => {
     item.addEventListener("click", () => {
@@ -997,12 +1074,14 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   });
 
-  document.getElementById("logoutButton")?.addEventListener("click", () => {
-    window.location.href = "/logout";
+  // Global logout actions from sidebar/top menu.
+  document.getElementById("logoutButton")?.addEventListener("click", async () => {
+    await logoutAndRedirect();
   });
 
   const notificationToggle = document.getElementById("notificationToggle");
   const notificationPanel = document.getElementById("notificationPanel");
+  // Notification panel toggle with refresh + mark-as-read sequence.
   notificationToggle?.addEventListener("click", async (event) => {
     event.stopPropagation();
     if (!notificationPanel) return;
@@ -1022,6 +1101,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   });
 
+  // Click-outside behavior for notification panel.
   document.addEventListener("click", (event) => {
     if (!notificationPanel || !notificationToggle) return;
     if (
@@ -1033,6 +1113,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   });
 
+  // Profile menu/modal setup with callback to refresh users table after updates.
   setupProfileMenu({
     onProfileUpdated: async () => {
       try {
@@ -1045,6 +1126,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
   try {
+    // Hydrate dashboard first, then wire listeners that depend on loaded data.
     const rows = await loadDirectorDashboard();
     document.getElementById("searchInput")?.addEventListener("input", () => {
       applySearchFilter(rows);

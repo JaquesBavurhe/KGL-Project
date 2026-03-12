@@ -20,7 +20,7 @@ const procurementSchema = new mongoose.Schema(
     tonnage: {
       type: Number,
       required: true,
-      min: 100, // since minimum is 1000kg in real case you can adjust
+      min: 100, 
     },
 
     cost: {

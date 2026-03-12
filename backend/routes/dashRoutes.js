@@ -36,7 +36,17 @@ router.get(
   authenticateToken({ redirectOnFail: true }),
   ensureDirector,
   (req, res) => {
-    res.sendFile(path.join(__dirname, "../../frontend/public/html/directorDashboard.html"));
+    res.sendFile(path.join(__dirname, "../../frontend/public/directorDashboard.html"));
+  },
+);
+
+// Direct HTML route guard for legacy/static links.
+router.get(
+  "/directorDashboard.html",
+  authenticateToken({ redirectOnFail: true }),
+  ensureDirector,
+  (req, res) => {
+    res.sendFile(path.join(__dirname, "../../frontend/public/directorDashboard.html"));
   },
 );
 
@@ -46,7 +56,17 @@ router.get(
   authenticateToken({ redirectOnFail: true }),
   ensureManager,
   (req, res) => {
-    res.sendFile(path.join(__dirname, "../../frontend/public/html/managerDashboard.html"));
+    res.sendFile(path.join(__dirname, "../../frontend/public/managerDashboard.html"));
+  },
+);
+
+// Direct HTML route guard for legacy/static links.
+router.get(
+  "/managerDashboard.html",
+  authenticateToken({ redirectOnFail: true }),
+  ensureManager,
+  (req, res) => {
+    res.sendFile(path.join(__dirname, "../../frontend/public/managerDashboard.html"));
   },
 );
 
@@ -57,7 +77,19 @@ router.get(
   ensureAgent,
   (req, res) => {
     res.sendFile(
-      path.join(__dirname, "../../frontend/public/html/salesAgentDashboard.html"),
+      path.join(__dirname, "../../frontend/public/salesAgentDashboard.html"),
+    );
+  },
+);
+
+// Direct HTML route guard for legacy/static links.
+router.get(
+  "/salesAgentDashboard.html",
+  authenticateToken({ redirectOnFail: true }),
+  ensureAgent,
+  (req, res) => {
+    res.sendFile(
+      path.join(__dirname, "../../frontend/public/salesAgentDashboard.html"),
     );
   },
 );

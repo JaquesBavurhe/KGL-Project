@@ -1,5 +1,37 @@
+// Core formatter/API utilities shared across manager dashboard actions.
 const formatNumber = (value) => new Intl.NumberFormat("en-UG").format(value || 0);
-const apiFetch = (url, options = {}) => fetch(url, { credentials: "include", ...options });
+const API_BASE_URL = "https://kgl-backend-2-5od0.onrender.com";
+// const API_BASE_URL = "http://localhost:3000";
+const buildApiUrl = (url) =>
+  /^https?:\/\//i.test(url)
+    ? url
+    : `${API_BASE_URL}${url.startsWith("/") ? "" : "/"}${url}`;
+const apiFetch = async (url, options = {}) => {
+  const { showLoader = true, loadingMessage = "Loading...", ...fetchOptions } = options;
+  if (showLoader && window.AppLoader) {
+    window.AppLoader.show(loadingMessage);
+  }
+  try {
+    return await fetch(buildApiUrl(url), { credentials: "include", ...fetchOptions });
+  } finally {
+    if (showLoader && window.AppLoader) {
+      window.AppLoader.hide();
+    }
+  }
+};
+const redirectToLoginPage = () => {
+  window.location.href = "/login.html";
+};
+
+// Attempts server logout, then always returns user to login.
+const logoutAndRedirect = async () => {
+  try {
+    await apiFetch("/logout");
+  } catch (_) {
+    // Ignore logout API errors and still return to login page.
+  }
+  redirectToLoginPage();
+};
 
 // Normalizes `datetime-local` input values before sending to API.
 const toIsoFromDateTimeLocal = (value) => {
@@ -24,7 +56,7 @@ let editingProcurementId = null;
 let pendingDeleteProcurementId = null;
 let authenticatedUser = null;
 
-// Modal state helpers used across manager forms.
+// Generic modal open/close helpers used by sale/procurement/delete dialogs.
 const openManagerModal = (modalId) => {
   activeManagerModalId = modalId;
   document.getElementById(modalId)?.classList.add("open");
@@ -37,6 +69,7 @@ const closeManagerModal = (modalId) => {
   }
 };
 
+// Resets modal fields and any transient status messages before reopening forms.
 const resetCashSaleForm = () => {
   const form = document.getElementById("cashSaleForm");
   form?.reset();
@@ -63,6 +96,7 @@ const resetProcurementForm = () => {
   if (status) status.textContent = "";
 };
 
+// Converts API date strings back into `datetime-local` format for edit mode.
 const toDateTimeLocalInputValue = (value) => {
   if (!value) return "";
   const date = new Date(value);
@@ -103,7 +137,7 @@ const applyProfileHeader = (user) => {
   }
 };
 
-// Controls manager profile dropdown + manage-profile modal behavior.
+// Wires profile dropdown actions and in-place profile update form.
 const setupProfileMenu = () => {
   const menuToggle = document.getElementById("profileMenuToggle");
   const menu = document.getElementById("profileMenu");
@@ -150,8 +184,8 @@ const setupProfileMenu = () => {
     openProfileModal();
   });
 
-  logoutFromMenuButton?.addEventListener("click", () => {
-    window.location.href = "/logout";
+  logoutFromMenuButton?.addEventListener("click", async () => {
+    await logoutAndRedirect();
   });
 
   closeProfileModalButton?.addEventListener("click", closeProfileModal);
@@ -231,13 +265,13 @@ const setupProfileMenu = () => {
   });
 };
 
-// Sales/procurement dashboard rendering and filtering helpers.
+// Requests live sale quote from backend for amount auto-calculation.
 const fetchSaleQuote = async (produceName, tonnageKg) => {
   const params = new URLSearchParams({
     produceName: String(produceName || "").trim(),
     tonnageKg: String(tonnageKg || ""),
   });
-  const res = await apiFetch(`/sales/price-quote?${params.toString()}`);
+  const res = await apiFetch(`/sales/price-quote?${params.toString()}`, { showLoader: false });
   const body = await res.json().catch(() => ({}));
   if (!res.ok) {
     throw new Error(body.message || "Failed to fetch price quote.");
@@ -245,6 +279,7 @@ const fetchSaleQuote = async (produceName, tonnageKg) => {
   return body.quote;
 };
 
+// Auto-fills amount fields when produce or tonnage changes in sale forms.
 const setupAutoAmountCalculation = ({ formId, amountName, statusId }) => {
   const form = document.getElementById(formId);
   if (!form) return;
@@ -258,6 +293,7 @@ const setupAutoAmountCalculation = ({ formId, amountName, statusId }) => {
     const produceName = produceInput?.value?.trim() || "";
     const tonnageKg = Number(tonnageInput?.value || 0);
 
+    // Skip quote requests until both required inputs are present.
     if (!produceName || !tonnageKg) {
       if (amountInput) amountInput.value = "";
       return;
@@ -298,6 +334,7 @@ const setNavSection = (targetId) => {
   });
 };
 
+// Renders sales table rows for combined cash + credit records.
 const renderSalesRows = (rows) => {
   const body = document.getElementById("salesRecordsBody");
   if (!body) return;
@@ -329,6 +366,7 @@ const renderSalesRows = (rows) => {
     .join("");
 };
 
+// Renders procurement records table with edit/delete action buttons.
 const renderProcurementRows = (rows) => {
   const body = document.getElementById("procurementRecordsBody");
   if (!body) return;
@@ -362,6 +400,7 @@ const renderProcurementRows = (rows) => {
     .join("");
 };
 
+// Applies a single search query across both sales and procurement datasets.
 const applySearchFilter = () => {
   const search = (document.getElementById("recordSearch")?.value || "")
     .trim()
@@ -391,6 +430,7 @@ const applySearchFilter = () => {
   renderProcurementRows(filteredProcurement);
 };
 
+// Renders top-right notification panel using stock-alert payloads.
 const renderNotificationPanel = () => {
   const badge = document.getElementById("notificationBadge");
   const list = document.getElementById("notificationList");
@@ -424,6 +464,7 @@ const renderNotificationPanel = () => {
 
 // Loads all manager dashboard resources and hydrates UI.
 const loadManagerDashboard = async () => {
+  // Fetch all dashboard dependencies together to reduce load time.
   const [meRes, salesRes, procurementSummaryRes, procurementRecordsRes, stockRes, alertsRes] =
     await Promise.all([
       apiFetch("/auth/me"),
@@ -434,11 +475,13 @@ const loadManagerDashboard = async () => {
       apiFetch("/stock/alerts"),
     ]);
 
+  // Redirect unauthenticated users before processing dashboard payloads.
   if (!meRes.ok) {
-    window.location.href = "/login";
+    redirectToLoginPage();
     return;
   }
 
+  // Authorization guard in case session belongs to a non-manager role.
   if (
     salesRes.status === 403 ||
     procurementSummaryRes.status === 403 ||
@@ -449,6 +492,7 @@ const loadManagerDashboard = async () => {
     throw new Error("Only managers can view this dashboard.");
   }
 
+  // Prevent partial rendering when one of the core dashboard resources fails.
   if (
     !salesRes.ok ||
     !procurementSummaryRes.ok ||
@@ -465,6 +509,7 @@ const loadManagerDashboard = async () => {
   const procurementRecordsData = await procurementRecordsRes.json();
   const stockData = await stockRes.json();
   const alertsData = await alertsRes.json();
+  // Persist alert list for badge/panel rendering.
   alertsCache = alertsData.alerts || [];
   renderNotificationPanel();
 
@@ -476,6 +521,7 @@ const loadManagerDashboard = async () => {
   const creditSales = salesData.creditSales || [];
   const procurementRows = procurementRecordsData.records || [];
 
+  // Flatten cash + credit records into a shared table model for search/render.
   salesRowsCache = [
     ...cashSales.map((sale) => ({
       type: "Cash",
@@ -497,6 +543,7 @@ const loadManagerDashboard = async () => {
     })),
   ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
+  // Keep newest entries first for both sales and procurement logs.
   procurementRowsCache = [...procurementRows].sort(
     (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
   );
@@ -540,6 +587,7 @@ const loadManagerDashboard = async () => {
       .join("")
     : '<tr><td colspan="4" style="text-align:center; color:#64748b;">No low stock items found.</td></tr>';
 
+  // Build compact alert summary line shown in stock section footer.
   const alertPreview = (alertsData.alerts || [])
     .slice(0, 2)
     .map((alert) => alert.message)
@@ -556,7 +604,7 @@ const loadManagerDashboard = async () => {
   document.getElementById("recordsStatus").textContent = "";
 };
 
-// Form submit handlers for creating/updating records.
+// Handles cash-sale submission lifecycle: save -> reload dashboard -> return to records view.
 const handleCashSubmit = async (event) => {
   event.preventDefault();
   const form = event.currentTarget;
@@ -592,6 +640,7 @@ const handleCashSubmit = async (event) => {
   setNavSection("records");
 };
 
+// Handles credit-sale submission with identical post-save refresh behavior.
 const handleCreditSubmit = async (event) => {
   event.preventDefault();
   const form = event.currentTarget;
@@ -630,6 +679,7 @@ const handleCreditSubmit = async (event) => {
   setNavSection("records");
 };
 
+// Handles create/update procurement submit based on current edit mode state.
 const handleProcurementSubmit = async (event) => {
   event.preventDefault();
   const form = event.currentTarget;
@@ -672,6 +722,7 @@ const handleProcurementSubmit = async (event) => {
   setNavSection("records");
 };
 
+// Pre-fills procurement modal from selected table row and switches to edit mode.
 const startEditProcurement = (id) => {
   const target = procurementRowsCache.find((row) => String(row._id) === String(id));
   if (!target) return;
@@ -700,6 +751,7 @@ const startEditProcurement = (id) => {
   setNavSection("procurement");
 };
 
+// Opens destructive-action confirmation modal for procurement deletion.
 const promptDeleteProcurement = (id) => {
   const target = procurementRowsCache.find((row) => String(row._id) === String(id));
   if (!target) return;
@@ -712,6 +764,7 @@ const promptDeleteProcurement = (id) => {
   openDeleteProcurementModal();
 };
 
+// Deletes selected procurement record and refreshes dashboard caches.
 const handleDeleteProcurement = async (id) => {
   const recordsStatus = document.getElementById("recordsStatus");
   if (recordsStatus) recordsStatus.textContent = "Deleting procurement...";
@@ -730,6 +783,7 @@ const handleDeleteProcurement = async (id) => {
 
 // Entry point: register event listeners and fetch initial data.
 document.addEventListener("DOMContentLoaded", async () => {
+  // Sidebar navigation tab switching.
   document.querySelectorAll(".nav-item[data-target]").forEach((item) => {
     item.addEventListener("click", () => {
       const targetId = item.getAttribute("data-target");
@@ -738,6 +792,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   });
 
+  // Search + auto-pricing behavior.
   document.getElementById("recordSearch")?.addEventListener("input", applySearchFilter);
   setupAutoAmountCalculation({
     formId: "cashSaleForm",
@@ -750,6 +805,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     statusId: "creditStatus",
   });
 
+  // Lightweight notification panel toggle (data already fetched on dashboard load).
   const notificationToggle = document.getElementById("notificationToggle");
   const notificationPanel = document.getElementById("notificationPanel");
   notificationToggle?.addEventListener("click", (event) => {
@@ -770,12 +826,14 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   });
 
-  document.getElementById("logoutButton")?.addEventListener("click", () => {
-    window.location.href = "/logout";
+  // Top-level account/logout interactions.
+  document.getElementById("logoutButton")?.addEventListener("click", async () => {
+    await logoutAndRedirect();
   });
 
   setupProfileMenu();
 
+  // Form submit handlers.
   document.getElementById("cashSaleForm")?.addEventListener("submit", (event) => {
     handleCashSubmit(event).catch((error) => {
       const status = document.getElementById("cashStatus");
@@ -797,6 +855,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   });
 
+  // Open/close actions for each modal.
   document.getElementById("openCashSaleModalButton")?.addEventListener("click", () => {
     resetCashSaleForm();
     openManagerModal("cashSaleModal");
@@ -831,6 +890,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     closeManagerModal("procurementModal");
   });
 
+  // Close modals when backdrop is clicked.
   document.getElementById("cashSaleModal")?.addEventListener("click", (event) => {
     if (event.target.id === "cashSaleModal") {
       closeManagerModal("cashSaleModal");
@@ -848,6 +908,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   });
 
+  // Table row actions for procurement edit/delete.
   document.getElementById("procurementRecordsBody")?.addEventListener("click", (event) => {
     const editButton = event.target.closest(".procurement-edit-btn");
     const deleteButton = event.target.closest(".procurement-delete-btn");
@@ -861,6 +922,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   });
 
+  // Confirmation modal actions for procurement deletion.
   document.getElementById("closeDeleteProcurementModalButton")?.addEventListener("click", () => {
     closeDeleteProcurementModal();
   });
@@ -888,11 +950,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   });
 
+  // Global ESC handling closes whichever manager modal is currently active.
   document.addEventListener("keydown", (event) => {
     if (event.key !== "Escape" || !activeManagerModalId) return;
     closeManagerModal(activeManagerModalId);
   });
 
+  // Initial dashboard hydration.
   try {
     await loadManagerDashboard();
   } catch (error) {

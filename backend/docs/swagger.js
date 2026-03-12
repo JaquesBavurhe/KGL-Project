@@ -9,7 +9,7 @@ try {
 const openApiSpec = {
   openapi: "3.0.3",
   info: {
-    title: "Karibu Groceries API",
+    title: "Karibu Groceries Ltd API",
     version: "1.0.0",
     description: "API documentation for authentication, dashboard, sales, stock, and procurement endpoints.",
   },

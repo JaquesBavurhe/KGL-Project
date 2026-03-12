@@ -5,7 +5,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>KGL - SignUp Form</title>
-    <link rel="stylesheet" href="../css/styles.css">
+    <link rel="apple-touch-icon" sizes="180x180" href="/assets/favicon/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon/favicon-16x16.png">
+    <link rel="icon" href="/assets/favicon/favicon.ico">
+    <link rel="manifest" href="/assets/favicon/site.webmanifest">
+    <link rel="stylesheet" href="./css/styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css"
@@ -73,7 +78,7 @@
             max-height: 90vh;
             /* background-color: var(--deep-charcoal); */
             background-image: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)),
-                url(../assets/top-view-reusable-bags-wooden-surface-with-vegetables-fruit.jpg);
+                url(./assets/top-view-reusable-bags-wooden-surface-with-vegetables-fruit.jpg);
             background-size: cover;
             background-position: center;
             border-radius: 3rem;
@@ -107,7 +112,7 @@
             <aside class="sidebar">
                 <div class="sidebar-content">
                     <div class="logo">
-                        <a href="/"><img src="../assets/logo/logo-vertical.png" width="auto" height="90px" alt=""></a>
+                        <a href="/"><img src="./assets/logo/logo-vertical.png" width="auto" height="90px" alt=""></a>
                     </div>
 
                     <h1 class="main-title">
@@ -138,7 +143,7 @@
                     </div>
                     <div class="nav-links">
                         <span class="muted-text hide-mobile">Already have an account?</span>
-                        <a href="/login" class="signup-link">
+                        <a href="/login.html" class="signup-link">
                             Login <i class="fa-solid fa-arrow-right"></i>
 
                         </a>
@@ -151,7 +156,7 @@
                         <p>Welcome! Please enter your details.</p>
                     </div>
 
-                    <form id="signupForm" class="login-form" action="/signup" method="post" novalidate>
+                    <form id="signupForm" class="login-form" action="#" method="post" novalidate>
 
                         <!-- STEP 1 -->
                         <div class="form-step active">
@@ -269,7 +274,8 @@
         </div>
     </div>
 
-    <script src="../js/formHandler.js"></script>
+    <script src="./js/loadingOverlay.js"></script>
+    <script src="./js/formHandler.js"></script>
     <script>
         let currentStep = 0;
         const steps = document.querySelectorAll(".form-step");
@@ -300,3 +306,5 @@
 </body>
 
 </html>
+
+

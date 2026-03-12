@@ -4,7 +4,7 @@ const path = require("path");
 
 // Serves the landing page.
 router.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "../../frontend/public/html/index.html"));
+  res.sendFile(path.join(__dirname, "../../frontend/public/index.html"));
 });
 
 module.exports = {router};
