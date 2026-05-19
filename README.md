@@ -2,6 +2,9 @@
 
 Live Preview: https://karibultd.netlify.app/
 
+![Preview](./preview.jpg)
+![Preview 2](./preview2.png)
+
 ## Login Credentials
 Director
 username: orban
