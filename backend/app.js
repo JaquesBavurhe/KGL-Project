@@ -15,6 +15,7 @@ const {router: dashRoutes} = require('./routes/dashRoutes');
 const {router: salesRoutes} = require('./routes/salesRoutes');
 const {router: ProcurementRoutes} = require('./routes/ProcurementRoutes');
 const { registerSwagger } = require("./docs/swagger");
+const { ensureDirector } = require("./scripts/seedDirector");
 
 // Express app bootstrap.
 const app = express();
@@ -37,14 +38,8 @@ const isOriginAllowed = (origin) => {
 // Expose moment in app locals for any template/view usage.
 app.locals.moment = moment;
 
-// Connect to MongoDB once at startup and log connection lifecycle events.
-mongoose.connect(URI).catch((error) => {
-  console.error(`Initial MongoDB connection failed: ${error.message}`);
-});
-mongoose.connection 
-  .once("open", () => {
-    console.log("Mongoose connection open!!");
-  })
+// Log MongoDB connection errors after startup.
+mongoose.connection
   .on("error", (error) => {
     console.error(`Connection error:${error.message}`);
   });
@@ -96,11 +91,22 @@ app.use((req, res) => {
   return res.status(404).json({ error: "Route not found" });
 });
 
-// Start HTTP server.
-app.listen(PORT, (err) => {
-  if (err) {
-    console.log(err);
-  } else {
-    console.log(`listening on port ${PORT}`);
+// Connect, ensure the initial Director account exists, then accept requests.
+async function startServer() {
+  if (!URI) {
+    throw new Error("MONGODB_URI is missing. Check backend/.env.");
   }
+
+  await mongoose.connect(URI);
+  console.log("Mongoose connection open!!");
+  await ensureDirector();
+
+  app.listen(PORT, () => {
+    console.log(`listening on port ${PORT}`);
+  });
+}
+
+startServer().catch((error) => {
+  console.error(`Server startup failed: ${error.message}`);
+  process.exit(1);
 });

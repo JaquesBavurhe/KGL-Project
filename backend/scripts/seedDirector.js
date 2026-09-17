@@ -3,17 +3,10 @@ const path = require("path");
 require("dotenv").config({ path: path.resolve(__dirname, "../.env") });
 const User = require("../models/User");
 
-async function run() {
-  if (!process.env.MONGODB_URI) {
-    throw new Error("MONGODB_URI is missing. Check backend/.env loading.");
-  }
-
-  await mongoose.connect(process.env.MONGODB_URI);
-
+async function ensureDirector() {
   const exists = await User.findOne({ username: "orban" });
   if (exists) {
     console.log("Director already exists");
-    await mongoose.disconnect();
     return;
   }
 
@@ -28,11 +21,24 @@ async function run() {
 
   await user.save();
   console.log("Director created");
-  await mongoose.disconnect();
 }
 
-run().catch(async (err) => {
-  console.error(err);
-  await mongoose.disconnect();
-  process.exit(1);
-});
+module.exports = { ensureDirector };
+
+if (require.main === module) {
+  async function run() {
+    if (!process.env.MONGODB_URI) {
+      throw new Error("MONGODB_URI is missing. Check backend/.env loading.");
+    }
+
+    await mongoose.connect(process.env.MONGODB_URI);
+    await ensureDirector();
+    await mongoose.disconnect();
+  }
+
+  run().catch(async (err) => {
+    console.error(err);
+    await mongoose.disconnect();
+    process.exit(1);
+  });
+}
