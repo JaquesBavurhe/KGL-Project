@@ -8,7 +8,7 @@ Live Preview: https://karibultd.netlify.app/
 ## Login Credentials
 Director
 username: orban
-password: password
+password: 12345678
 
 ## Project Overview
 Karibu Groceries LTD (KGL) is a wholesale produce distributor dealing in cereals, with two branches located in different areas. Previously, all business operations were recorded manually in ruled black books. This project aims to design and implement a **software-based solution** to automate and streamline KGL’s operations.
